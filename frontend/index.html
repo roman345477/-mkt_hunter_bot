@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Marktplaats Hunter</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:       #0a0b0e;
+      --surface:  #111318;
+      --card:     #161923;
+      --border:   #1e2535;
+      --accent:   #00e5ff;
+      --green:    #00ff88;
+      --yellow:   #ffcc00;
+      --red:      #ff4466;
+      --text:     #e8eaf0;
+      --muted:    #5a6070;
+      --profit:   #00ff88;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Header ─────────────────────────────────────────── */
+    .header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 16px 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .logo {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: var(--accent);
+    }
+
+    .logo span { color: var(--text); }
+
+    .stats-pill {
+      font-size: 11px;
+      background: rgba(0,229,255,0.08);
+      color: var(--accent);
+      border: 1px solid rgba(0,229,255,0.2);
+      border-radius: 20px;
+      padding: 3px 10px;
+    }
+
+    /* ── Filters ─────────────────────────────────────────── */
+    .filters {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding-bottom: 2px;
+    }
+    .filters::-webkit-scrollbar { display: none; }
+
+    .chip {
+      flex-shrink: 0;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .chip.active {
+      background: rgba(0,229,255,0.1);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ── Sort bar ─────────────────────────────────────────── */
+    .sort-bar {
+      display: flex;
+      gap: 4px;
+      padding: 10px 16px 0;
+    }
+
+    .sort-btn {
+      font-size: 12px;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .sort-btn.active {
+      background: var(--card);
+      color: var(--text);
+      border-color: var(--accent);
+    }
+
+    /* ── Deal cards ───────────────────────────────────────── */
+    .deals-list {
+      padding: 12px 16px 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .deal-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: transform 0.12s, border-color 0.12s;
+      animation: slideIn 0.2s ease-out;
+    }
+
+    .deal-card:active { transform: scale(0.98); }
+    .deal-card.deal-hot { border-color: rgba(0,255,136,0.25); }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .card-header {
+      padding: 12px 14px 0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .card-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.2;
+      color: var(--text);
+      flex: 1;
+    }
+
+    .gpu-badge {
+      flex-shrink: 0;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: rgba(0,229,255,0.1);
+      color: var(--accent);
+      border: 1px solid rgba(0,229,255,0.2);
+      white-space: nowrap;
+    }
+
+    .card-body {
+      padding: 10px 14px 12px;
+    }
+
+    .price-row {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .price-ask {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .price-market {
+      font-size: 12px;
+      color: var(--muted);
+      text-decoration: line-through;
+    }
+
+    .profit-badge {
+      margin-left: auto;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--profit);
+    }
+
+    .meta-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .meta-tag {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+
+    .meta-tag.risk-low    { color: var(--green);  background: rgba(0,255,136,0.06);  border-color: rgba(0,255,136,0.2); }
+    .meta-tag.risk-medium { color: var(--yellow); background: rgba(255,204,0,0.06);  border-color: rgba(255,204,0,0.2); }
+    .meta-tag.risk-high   { color: var(--red);    background: rgba(255,68,102,0.06); border-color: rgba(255,68,102,0.2); }
+
+    .card-cta {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-primary {
+      flex: 1;
+      padding: 9px;
+      background: rgba(0,229,255,0.1);
+      border: 1px solid rgba(0,229,255,0.3);
+      border-radius: 8px;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      font-family: 'Rajdhani', sans-serif;
+      letter-spacing: 0.04em;
+      transition: background 0.15s;
+    }
+    .btn-primary:active { background: rgba(0,229,255,0.2); }
+
+    .score-bar {
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+    .score-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+      transition: width 0.4s ease;
+    }
+
+    /* ── Empty / Loading ──────────────────────────────────── */
+    .state-msg {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .state-msg .icon { font-size: 40px; margin-bottom: 12px; }
+
+    .skeleton {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      height: 160px;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 0.5; }
+      50%      { opacity: 1; }
+    }
+
+    /* ── Refresh FAB ──────────────────────────────────────── */
+    .fab {
+      position: fixed;
+      bottom: 20px;
+      right: 16px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #000;
+      font-size: 20px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(0,229,255,0.3);
+      transition: transform 0.2s;
+    }
+    .fab:active { transform: scale(0.9); }
+    .fab.spinning { animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-row">
+    <div class="logo">HUNTER<span>.</span></div>
+    <div class="stats-pill" id="statsLabel">Завантаження...</div>
+  </div>
+  <div class="filters" id="filterChips">
+    <button class="chip active" data-gpu="">Всі GPU</button>
+    <button class="chip" data-gpu="RTX 4060">RTX 4060</button>
+    <button class="chip" data-gpu="RTX 4050">RTX 4050</button>
+    <button class="chip" data-profit="150">Profit ≥€150</button>
+    <button class="chip" data-profit="200">Profit ≥€200</button>
+    <button class="chip" data-profit="300">Profit ≥€300</button>
+  </div>
+</div>
+
+<div class="sort-bar">
+  <button class="sort-btn active" data-sort="score">⭐ Score</button>
+  <button class="sort-btn" data-sort="profit">💰 Profit</button>
+  <button class="sort-btn" data-sort="newest">🕐 Нові</button>
+  <button class="sort-btn" data-sort="price">💶 Ціна</button>
+</div>
+
+<div class="deals-list" id="dealsList">
+  <div class="skeleton"></div>
+  <div class="skeleton"></div>
+  <div class="skeleton"></div>
+</div>
+
+<button class="fab" id="refreshBtn" title="Оновити">↻</button>
+
+<script>
+  // ── Telegram Web App init ────────────────────────────────
+  const tg = window.Telegram?.WebApp;
+  if (tg) {
+    tg.expand();
+    tg.setHeaderColor('#111318');
+    tg.setBackgroundColor('#0a0b0e');
+  }
+
+  // ── State ────────────────────────────────────────────────
+  const API = window.location.origin;
+  let deals   = [];
+  let filters = { gpu: '', profit: 0 };
+  let sortBy  = 'score';
+  let loading = false;
+
+  // ── Fetch deals ──────────────────────────────────────────
+  async function fetchDeals() {
+    if (loading) return;
+    loading = true;
+    document.getElementById('refreshBtn').classList.add('spinning');
+
+    try {
+      const params = new URLSearchParams({
+        sort_by:    sortBy,
+        min_profit: filters.profit || 0,
+        limit: 100,
+      });
+      if (filters.gpu) params.set('gpu', filters.gpu);
+
+      const res  = await fetch(`${API}/deals?${params}`);
+      const data = await res.json();
+      deals = data.deals || [];
+
+      document.getElementById('statsLabel').textContent =
+        `${deals.length} угод`;
+
+      render();
+    } catch (e) {
+      console.error(e);
+      showError();
+    } finally {
+      loading = false;
+      document.getElementById('refreshBtn').classList.remove('spinning');
+    }
+  }
+
+  // ── Render ───────────────────────────────────────────────
+  function render() {
+    const list = document.getElementById('dealsList');
+
+    if (!deals.length) {
+      list.innerHTML = `
+        <div class="state-msg">
+          <div class="icon">🔍</div>
+          <div>Поки немає вигідних угод.<br>Система продовжує сканування.</div>
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = deals.map((d, i) => cardHTML(d, i)).join('');
+  }
+
+  function cardHTML(d, idx) {
+    const riskClass = `risk-${d.risk}`;
+    const riskIcon  = { low: '🟢', medium: '🟡', high: '🔴' }[d.risk] || '⚪';
+    const liqIcon   = { high: '💧💧💧', medium: '💧💧', low: '💧' }[d.liquidity] || '💧';
+    const score     = Math.max(0, Math.min(100, d.deal_score || 0));
+    const isHot     = score >= 60;
+    const delay     = Math.min(idx * 40, 300);
+
+    const ramText   = d.ram ? `${d.ram}GB` : '';
+
+    return `
+      <div class="deal-card ${isHot ? 'deal-hot' : ''}" style="animation-delay:${delay}ms">
+        <div class="card-header">
+          <div class="card-title">${escHtml(d.title)}</div>
+          <div class="gpu-badge">${escHtml(d.gpu)}</div>
+        </div>
+        <div class="card-body">
+          <div class="score-bar">
+            <div class="score-fill" style="width:${score}%"></div>
+          </div>
+          <div class="price-row">
+            <div class="price-ask">€${Math.round(d.price)}</div>
+            <div class="price-market">€${Math.round(d.market_price)}</div>
+            <div class="profit-badge">+€${Math.round(d.profit)} (${Math.round(d.profit_percent)}%)</div>
+          </div>
+          <div class="meta-row">
+            <span class="meta-tag ${riskClass}">${riskIcon} ${cap(d.risk)}</span>
+            <span class="meta-tag">${liqIcon} ${cap(d.liquidity)}</span>
+            ${ramText ? `<span class="meta-tag">💾 ${ramText}</span>` : ''}
+            <span class="meta-tag">📍 ${escHtml(d.location || 'NL')}</span>
+            <span class="meta-tag">⭐ ${score}/100</span>
+          </div>
+          <div class="card-cta">
+            <a class="btn-primary" href="${escHtml(d.url)}" target="_blank"
+               onclick="tg?.openLink?.('${escHtml(d.url)}'); return false;">
+              🔗 Відкрити оголошення
+            </a>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function showError() {
+    document.getElementById('dealsList').innerHTML = `
+      <div class="state-msg">
+        <div class="icon">⚠️</div>
+        <div>Помилка завантаження.<br>Перевірте підключення.</div>
+      </div>`;
+  }
+
+  // ── Helpers ──────────────────────────────────────────────
+  function escHtml(s) {
+    return String(s || '')
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+  function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+
+  // ── Filter chips ──────────────────────────────────────────
+  document.getElementById('filterChips').addEventListener('click', e => {
+    const btn = e.target.closest('.chip');
+    if (!btn) return;
+
+    // GPU chips
+    if ('gpu' in btn.dataset) {
+      document.querySelectorAll('.chip[data-gpu]').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      filters.gpu = btn.dataset.gpu;
+      fetchDeals();
+      return;
+    }
+
+    // Profit chips
+    if ('profit' in btn.dataset) {
+      const val = parseInt(btn.dataset.profit);
+      if (filters.profit === val) {
+        btn.classList.remove('active');
+        filters.profit = 0;
+      } else {
+        document.querySelectorAll('.chip[data-profit]').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        filters.profit = val;
+      }
+      fetchDeals();
+    }
+  });
+
+  // ── Sort buttons ──────────────────────────────────────────
+  document.querySelector('.sort-bar').addEventListener('click', e => {
+    const btn = e.target.closest('.sort-btn');
+    if (!btn) return;
+    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    sortBy = btn.dataset.sort;
+    fetchDeals();
+  });
+
+  // ── Refresh FAB ───────────────────────────────────────────
+  document.getElementById('refreshBtn').addEventListener('click', fetchDeals);
+
+  // ── Auto-refresh every 30s ────────────────────────────────
+  setInterval(fetchDeals, 30_000);
+
+  // ── Init ──────────────────────────────────────────────────
+  fetchDeals();
+</script>
+</body>
+</html>
