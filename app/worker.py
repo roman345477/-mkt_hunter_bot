@@ -29,10 +29,11 @@ async def run_cycle():
 
     update_market_prices(listings)
 
-    for listing in listings:
-        d = evaluate(listing)
-        if d is None:
-            continue
+   for listing in listings:
+    d = evaluate(listing)
+    if d is None:
+        logger.debug(f"SKIP: {listing.get('title','')[:30]} | price={listing.get('price')} | gpu={listing.get('gpu')} | ram={listing.get('ram')} | condition={listing.get('condition')}")
+        continue
         d = d.to_dict()
         if upsert_deal(d):
             new_count += 1
