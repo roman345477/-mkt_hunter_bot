@@ -83,7 +83,19 @@ async def mini_app():
     if index.exists():
         return FileResponse(str(index))
     return JSONResponse({"error": "Frontend not found"}, status_code=404)
-
+@app.get("/debug")
+async def debug():
+    """Show raw scraper data — temporary debug endpoint."""
+    from scraper import scrape_all
+    import asyncio
+    listings = await scrape_all()
+    return {
+        "count": len(listings),
+        "sample": listings[:5],  # перші 5 оголошень
+        "conditions": list(set(l.get("condition","") for l in listings)),
+        "gpus": list(set(l.get("gpu","") for l in listings)),
+        "prices": sorted([l.get("price",0) for l in listings])[:10],
+    }
 
 @app.get("/")
 async def root():
