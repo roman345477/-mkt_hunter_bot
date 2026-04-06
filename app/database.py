@@ -1,16 +1,13 @@
 """
-Database layer — SQLite with deduplication.
+Database layer — SQLite with deduplication + scrape log + all listings.
 """
 
 import sqlite3
 import logging
-import json
 from pathlib import Path
-from datetime import datetime
 from typing import Optional
 
 logger = logging.getLogger(__name__)
-
 DB_PATH = Path("data/deals.db")
 
 
@@ -46,41 +43,67 @@ def init_db():
             risk             TEXT,
             liquidity        TEXT,
             is_deal          INTEGER DEFAULT 0,
+            is_watch         INTEGER DEFAULT 0,
             deal_score       REAL,
             notified         INTEGER DEFAULT 0,
             created_at       TEXT DEFAULT (datetime('now'))
         );
-
-        CREATE INDEX IF NOT EXISTS idx_is_deal   ON deals(is_deal);
-        CREATE INDEX IF NOT EXISTS idx_score     ON deals(deal_score DESC);
-        CREATE INDEX IF NOT EXISTS idx_created   ON deals(created_at DESC);
-        CREATE INDEX IF NOT EXISTS idx_notified  ON deals(notified);
+        CREATE TABLE IF NOT EXISTS scrape_log (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            scraped_at    TEXT DEFAULT (datetime('now')),
+            total_scraped INTEGER,
+            new_found     INTEGER,
+            deals_found   INTEGER,
+            watch_found   INTEGER DEFAULT 0
+        );
+        CREATE INDEX IF NOT EXISTS idx_is_deal  ON deals(is_deal);
+        CREATE INDEX IF NOT EXISTS idx_is_watch ON deals(is_watch);
+        CREATE INDEX IF NOT EXISTS idx_score    ON deals(deal_score DESC);
+        CREATE INDEX IF NOT EXISTS idx_created  ON deals(created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_notified ON deals(notified);
     """)
     conn.commit()
     conn.close()
     logger.info("DB initialized")
 
 
+def log_scrape(total_scraped: int, new_found: int, deals_found: int, watch_found: int = 0):
+    conn = get_conn()
+    conn.execute(
+        "INSERT INTO scrape_log (total_scraped, new_found, deals_found, watch_found) VALUES (?,?,?,?)",
+        (total_scraped, new_found, deals_found, watch_found)
+    )
+    conn.execute("DELETE FROM scrape_log WHERE id NOT IN (SELECT id FROM scrape_log ORDER BY id DESC LIMIT 100)")
+    conn.commit()
+    conn.close()
+
+
+def get_scrape_stats() -> list:
+    conn = get_conn()
+    rows = conn.execute("""
+        SELECT scraped_at, total_scraped, new_found, deals_found, watch_found
+        FROM scrape_log ORDER BY id DESC LIMIT 20
+    """).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
 def upsert_deal(d: dict) -> bool:
-    """Insert deal; return True if it's NEW (not seen before)."""
     conn = get_conn()
     try:
-        cur = conn.execute("SELECT item_id FROM deals WHERE item_id = ?", (d["item_id"],))
-        exists = cur.fetchone()
-        if exists:
+        if conn.execute("SELECT item_id FROM deals WHERE item_id = ?", (d["item_id"],)).fetchone():
             return False
-
         conn.execute("""
             INSERT INTO deals (
                 item_id, title, price, gpu, ram, condition, location,
                 url, image_url, seller_name, description, scraped_at,
                 market_price, resale_price, profit, profit_percent,
-                discount_percent, risk, liquidity, is_deal, deal_score
+                discount_percent, risk, liquidity, is_deal, is_watch, deal_score
             ) VALUES (
                 :item_id, :title, :price, :gpu, :ram, :condition, :location,
                 :url, :image_url, :seller_name, :description, :scraped_at,
                 :market_price, :resale_price, :profit, :profit_percent,
-                :discount_percent, :risk, :liquidity, :is_deal, :deal_score
+                :discount_percent, :risk, :liquidity, :is_deal, :is_watch, :deal_score
             )
         """, d)
         conn.commit()
@@ -98,6 +121,7 @@ def mark_notified(item_id: str):
 
 def get_deals(
     only_deals: bool = True,
+    include_watch: bool = False,
     limit: int = 50,
     offset: int = 0,
     min_profit: float = 0,
@@ -106,49 +130,43 @@ def get_deals(
     sort_by: str = "score",
 ) -> list[dict]:
     conn = get_conn()
-    filters = ["1=1"]
-    params: list = []
+    filters, params = ["1=1"], []
 
-    if only_deals:
+    if only_deals and not include_watch:
         filters.append("is_deal = 1")
+    elif include_watch and not only_deals:
+        filters.append("(is_deal = 1 OR is_watch = 1)")
+    elif only_deals and include_watch:
+        filters.append("(is_deal = 1 OR is_watch = 1)")
+
     if min_profit > 0:
-        filters.append("profit >= ?")
-        params.append(min_profit)
+        filters.append("profit >= ?"); params.append(min_profit)
     if gpu:
-        filters.append("gpu = ?")
-        params.append(gpu)
+        filters.append("gpu = ?"); params.append(gpu)
     if max_price < 9999:
-        filters.append("price <= ?")
-        params.append(max_price)
+        filters.append("price <= ?"); params.append(max_price)
 
     order = {
-        "score":  "deal_score DESC",
+        "score":  "deal_score DESC, discount_percent DESC",
         "profit": "profit DESC",
         "newest": "created_at DESC",
         "price":  "price ASC",
     }.get(sort_by, "deal_score DESC")
 
-    where = " AND ".join(filters)
-    sql = f"""
-        SELECT * FROM deals
-        WHERE {where}
-        ORDER BY {order}
-        LIMIT ? OFFSET ?
-    """
-    params += [limit, offset]
-
-    rows = conn.execute(sql, params).fetchall()
+    rows = conn.execute(
+        f"SELECT * FROM deals WHERE {' AND '.join(filters)} ORDER BY {order} LIMIT ? OFFSET ?",
+        params + [limit, offset]
+    ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
 
 def get_pending_notifications() -> list[dict]:
-    """Return deals that haven't been sent to Telegram yet."""
     conn = get_conn()
     rows = conn.execute("""
         SELECT * FROM deals
-        WHERE is_deal = 1 AND notified = 0
-        ORDER BY deal_score DESC
+        WHERE (is_deal = 1 OR is_watch = 1) AND notified = 0
+        ORDER BY is_deal DESC, deal_score DESC
     """).fetchall()
     conn.close()
     return [dict(r) for r in rows]
@@ -157,11 +175,11 @@ def get_pending_notifications() -> list[dict]:
 def get_stats() -> dict:
     conn = get_conn()
     stats = conn.execute("""
-        SELECT
-            COUNT(*) as total,
-            SUM(CASE WHEN is_deal = 1 THEN 1 ELSE 0 END) as deals,
+        SELECT COUNT(*) as total,
+            SUM(CASE WHEN is_deal=1 THEN 1 ELSE 0 END) as deals,
+            SUM(CASE WHEN is_watch=1 THEN 1 ELSE 0 END) as watches,
             MAX(profit) as best_profit,
-            AVG(CASE WHEN is_deal = 1 THEN profit ELSE NULL END) as avg_profit
+            AVG(CASE WHEN is_deal=1 THEN profit ELSE NULL END) as avg_profit
         FROM deals
     """).fetchone()
     conn.close()

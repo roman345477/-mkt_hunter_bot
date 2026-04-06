@@ -23,6 +23,7 @@ def start_api():
         "--host", "0.0.0.0",
         "--port", port,
         "--log-level", "info",
+        "--app-dir", os.path.join(os.path.dirname(__file__)),
     ])
 
 

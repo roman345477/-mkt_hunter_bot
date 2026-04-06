@@ -1,316 +1,94 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
   <title>Marktplaats Hunter</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
   <style>
-    :root {
-      --bg:       #0a0b0e;
-      --surface:  #111318;
-      --card:     #161923;
-      --border:   #1e2535;
-      --accent:   #00e5ff;
-      --green:    #00ff88;
-      --yellow:   #ffcc00;
-      --red:      #ff4466;
-      --text:     #e8eaf0;
-      --muted:    #5a6070;
-      --profit:   #00ff88;
-    }
+    :root{--bg:#0a0b0e;--surface:#111318;--card:#161923;--border:#1e2535;--accent:#00e5ff;--green:#00ff88;--yellow:#ffcc00;--orange:#ff8c00;--red:#ff4466;--txt:#e8eaf0;--muted:#5a6070}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;overflow-x:hidden}
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    .header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px 10px;position:sticky;top:0;z-index:100}
+    .header-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .logo{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;letter-spacing:.06em;color:var(--accent)}
+    .logo span{color:var(--txt)}
+    .header-stats{display:flex;gap:6px}
+    .pill{font-size:10px;background:rgba(0,229,255,.08);color:var(--accent);border:1px solid rgba(0,229,255,.2);border-radius:20px;padding:2px 9px}
+    .pill.watch{background:rgba(255,140,0,.08);color:var(--orange);border-color:rgba(255,140,0,.2)}
+    .chips{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none}
+    .chips::-webkit-scrollbar{display:none}
+    .chip{flex-shrink:0;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;border:1px solid var(--border);color:var(--muted);cursor:pointer;letter-spacing:.04em;transition:all .15s}
+    .chip.on{background:rgba(0,229,255,.1);border-color:var(--accent);color:var(--accent)}
 
-    body {
-      font-family: 'Inter', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
+    .tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface)}
+    .tab{flex:1;padding:9px;font-size:12px;font-weight:600;text-align:center;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;letter-spacing:.04em}
+    .tab.on{color:var(--accent);border-bottom-color:var(--accent)}
 
-    /* ── Header ─────────────────────────────────────────── */
-    .header {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 14px 16px 12px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
+    .sortbar{display:flex;gap:4px;padding:8px 16px 0}
+    .sb{font-size:11px;font-weight:500;padding:3px 8px;border-radius:5px;border:1px solid var(--border);color:var(--muted);cursor:pointer;background:transparent;transition:all .15s}
+    .sb.on{background:var(--card);color:var(--txt);border-color:var(--accent)}
 
-    .header-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
+    .page{display:none;padding:10px 14px 80px}
+    .page.on{display:block}
 
-    .logo {
-      font-family: 'Rajdhani', sans-serif;
-      font-size: 20px;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      color: var(--accent);
-    }
+    .card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:8px;animation:slideIn .2s ease-out}
+    .card.hot{border-color:rgba(0,255,136,.25)}
+    .card.watch-card{border-color:rgba(255,140,0,.2)}
+    @keyframes slideIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+    .ch{padding:10px 12px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+    .ctitle{font-size:13px;font-weight:600;line-height:1.25;flex:1}
+    .gbadge{font-size:9px;font-weight:700;letter-spacing:.06em;padding:2px 6px;border-radius:3px;background:rgba(0,229,255,.1);color:var(--accent);border:1px solid rgba(0,229,255,.2);white-space:nowrap;flex-shrink:0}
+    .watch-badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;background:rgba(255,140,0,.1);color:var(--orange);border:1px solid rgba(255,140,0,.2);white-space:nowrap;flex-shrink:0;margin-right:4px}
+    .cb{padding:8px 12px 10px}
+    .scorebar{height:2px;background:var(--border);border-radius:2px;margin-bottom:8px;overflow:hidden}
+    .scorefill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--green));transition:width .4s}
+    .watchfill{background:linear-gradient(90deg,var(--orange),var(--yellow))}
+    .prow{display:flex;align-items:baseline;gap:8px;margin-bottom:7px}
+    .pask{font-size:22px;font-weight:700;font-family:'Rajdhani',sans-serif}
+    .pmkt{font-size:11px;color:var(--muted);text-decoration:line-through}
+    .pbadge{margin-left:auto;font-size:13px;font-weight:700;color:var(--green);font-family:'Rajdhani',sans-serif}
+    .pbadge.watch{color:var(--orange)}
+    .tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+    .tag{font-size:10px;padding:2px 6px;border-radius:3px;background:rgba(255,255,255,.04);color:var(--muted);border:1px solid var(--border)}
+    .tag.rlow{color:var(--green);background:rgba(0,255,136,.06);border-color:rgba(0,255,136,.2)}
+    .tag.rmed{color:var(--yellow);background:rgba(255,204,0,.06);border-color:rgba(255,204,0,.2)}
+    .tag.rhigh{color:var(--red);background:rgba(255,68,102,.06);border-color:rgba(255,68,102,.2)}
+    .btn{width:100%;padding:7px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.25);border-radius:6px;color:var(--accent);font-size:12px;font-weight:600;text-align:center;text-decoration:none;display:block;letter-spacing:.04em}
 
-    .logo span { color: var(--text); }
+    .activity-section{margin-bottom:16px}
+    .section-title{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+    .price-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+    .price-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+    .price-gpu{font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.06em;margin-bottom:4px}
+    .price-val{font-size:18px;font-weight:700;font-family:'Rajdhani',sans-serif}
+    .price-sub{font-size:10px;color:var(--muted);margin-top:2px}
+    .price-badge{display:inline-block;font-size:9px;padding:1px 5px;border-radius:3px;margin-top:4px}
+    .price-badge.dynamic{background:rgba(0,255,136,.1);color:var(--green);border:1px solid rgba(0,255,136,.2)}
+    .price-badge.default{background:rgba(90,96,112,.1);color:var(--muted);border:1px solid var(--border)}
 
-    .stats-pill {
-      font-size: 11px;
-      background: rgba(0,229,255,0.08);
-      color: var(--accent);
-      border: 1px solid rgba(0,229,255,0.2);
-      border-radius: 20px;
-      padding: 3px 10px;
-    }
+    .log-row{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--card);border:1px solid var(--border);border-radius:7px;margin-bottom:5px}
+    .log-time{font-size:10px;color:var(--muted);white-space:nowrap;min-width:42px}
+    .log-body{flex:1;font-size:11px}
+    .log-count{font-size:10px;font-weight:600}
+    .log-new{color:var(--accent)}
+    .log-deal{color:var(--green)}
+    .log-watch{color:var(--orange)}
+    .log-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+    .dot-deal{background:var(--green)}
+    .dot-watch{background:var(--orange)}
+    .dot-idle{background:var(--muted)}
 
-    /* ── Filters ─────────────────────────────────────────── */
-    .filters {
-      display: flex;
-      gap: 6px;
-      overflow-x: auto;
-      scrollbar-width: none;
-      padding-bottom: 2px;
-    }
-    .filters::-webkit-scrollbar { display: none; }
+    .state-msg{text-align:center;padding:50px 20px;color:var(--muted);font-size:13px}
+    .state-msg .ico{font-size:36px;margin-bottom:10px}
+    .skel{background:var(--card);border:1px solid var(--border);border-radius:10px;height:140px;margin-bottom:8px;animation:pulse 1.4s ease-in-out infinite}
+    @keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
 
-    .chip {
-      flex-shrink: 0;
-      font-family: 'Rajdhani', sans-serif;
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      padding: 5px 12px;
-      border-radius: 20px;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--muted);
-      cursor: pointer;
-      transition: all 0.15s;
-      white-space: nowrap;
-    }
-
-    .chip.active {
-      background: rgba(0,229,255,0.1);
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-
-    /* ── Sort bar ─────────────────────────────────────────── */
-    .sort-bar {
-      display: flex;
-      gap: 4px;
-      padding: 10px 16px 0;
-    }
-
-    .sort-btn {
-      font-size: 12px;
-      font-weight: 500;
-      padding: 4px 10px;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--muted);
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .sort-btn.active {
-      background: var(--card);
-      color: var(--text);
-      border-color: var(--accent);
-    }
-
-    /* ── Deal cards ───────────────────────────────────────── */
-    .deals-list {
-      padding: 12px 16px 80px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .deal-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      overflow: hidden;
-      transition: transform 0.12s, border-color 0.12s;
-      animation: slideIn 0.2s ease-out;
-    }
-
-    .deal-card:active { transform: scale(0.98); }
-    .deal-card.deal-hot { border-color: rgba(0,255,136,0.25); }
-
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .card-header {
-      padding: 12px 14px 0;
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 8px;
-    }
-
-    .card-title {
-      font-family: 'Rajdhani', sans-serif;
-      font-size: 15px;
-      font-weight: 700;
-      line-height: 1.2;
-      color: var(--text);
-      flex: 1;
-    }
-
-    .gpu-badge {
-      flex-shrink: 0;
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      padding: 2px 8px;
-      border-radius: 4px;
-      background: rgba(0,229,255,0.1);
-      color: var(--accent);
-      border: 1px solid rgba(0,229,255,0.2);
-      white-space: nowrap;
-    }
-
-    .card-body {
-      padding: 10px 14px 12px;
-    }
-
-    .price-row {
-      display: flex;
-      align-items: baseline;
-      gap: 10px;
-      margin-bottom: 8px;
-    }
-
-    .price-ask {
-      font-family: 'Rajdhani', sans-serif;
-      font-size: 26px;
-      font-weight: 700;
-      color: var(--text);
-    }
-
-    .price-market {
-      font-size: 12px;
-      color: var(--muted);
-      text-decoration: line-through;
-    }
-
-    .profit-badge {
-      margin-left: auto;
-      font-family: 'Rajdhani', sans-serif;
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--profit);
-    }
-
-    .meta-row {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      margin-bottom: 10px;
-    }
-
-    .meta-tag {
-      font-size: 11px;
-      padding: 3px 8px;
-      border-radius: 4px;
-      background: rgba(255,255,255,0.04);
-      color: var(--muted);
-      border: 1px solid var(--border);
-    }
-
-    .meta-tag.risk-low    { color: var(--green);  background: rgba(0,255,136,0.06);  border-color: rgba(0,255,136,0.2); }
-    .meta-tag.risk-medium { color: var(--yellow); background: rgba(255,204,0,0.06);  border-color: rgba(255,204,0,0.2); }
-    .meta-tag.risk-high   { color: var(--red);    background: rgba(255,68,102,0.06); border-color: rgba(255,68,102,0.2); }
-
-    .card-cta {
-      display: flex;
-      gap: 6px;
-    }
-
-    .btn-primary {
-      flex: 1;
-      padding: 9px;
-      background: rgba(0,229,255,0.1);
-      border: 1px solid rgba(0,229,255,0.3);
-      border-radius: 8px;
-      color: var(--accent);
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      text-align: center;
-      text-decoration: none;
-      font-family: 'Rajdhani', sans-serif;
-      letter-spacing: 0.04em;
-      transition: background 0.15s;
-    }
-    .btn-primary:active { background: rgba(0,229,255,0.2); }
-
-    .score-bar {
-      height: 3px;
-      background: var(--border);
-      border-radius: 2px;
-      margin-bottom: 10px;
-      overflow: hidden;
-    }
-    .score-fill {
-      height: 100%;
-      border-radius: 2px;
-      background: linear-gradient(90deg, var(--accent), var(--green));
-      transition: width 0.4s ease;
-    }
-
-    /* ── Empty / Loading ──────────────────────────────────── */
-    .state-msg {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--muted);
-      font-size: 14px;
-    }
-    .state-msg .icon { font-size: 40px; margin-bottom: 12px; }
-
-    .skeleton {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      height: 160px;
-      animation: pulse 1.4s ease-in-out infinite;
-    }
-    @keyframes pulse {
-      0%,100% { opacity: 0.5; }
-      50%      { opacity: 1; }
-    }
-
-    /* ── Refresh FAB ──────────────────────────────────────── */
-    .fab {
-      position: fixed;
-      bottom: 20px;
-      right: 16px;
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      background: var(--accent);
-      color: #000;
-      font-size: 20px;
-      border: none;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 20px rgba(0,229,255,0.3);
-      transition: transform 0.2s;
-    }
-    .fab:active { transform: scale(0.9); }
-    .fab.spinning { animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .fab{position:fixed;bottom:20px;right:16px;width:44px;height:44px;border-radius:50%;background:var(--accent);color:#000;font-size:18px;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,229,255,.3)}
+    .fab.spin{animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
 <body>
@@ -318,203 +96,246 @@
 <div class="header">
   <div class="header-row">
     <div class="logo">HUNTER<span>.</span></div>
-    <div class="stats-pill" id="statsLabel">Завантаження...</div>
+    <div class="header-stats">
+      <div class="pill" id="dealsLabel">0 угод</div>
+      <div class="pill watch" id="watchLabel">0 watch</div>
+    </div>
   </div>
-  <div class="filters" id="filterChips">
-    <button class="chip active" data-gpu="">Всі GPU</button>
-    <button class="chip" data-gpu="RTX 4060">RTX 4060</button>
-    <button class="chip" data-gpu="RTX 4050">RTX 4050</button>
-    <button class="chip" data-profit="150">Profit ≥€150</button>
-    <button class="chip" data-profit="200">Profit ≥€200</button>
-    <button class="chip" data-profit="300">Profit ≥€300</button>
+  <div class="chips" id="filterChips">
+    <div class="chip on" data-gpu="">Всі GPU</div>
+    <div class="chip" data-gpu="RTX 4060">RTX 4060</div>
+    <div class="chip" data-gpu="RTX 4050">RTX 4050</div>
+    <div class="chip" data-profit="100">≥€100</div>
+    <div class="chip" data-profit="150">≥€150</div>
+    <div class="chip" data-profit="200">≥€200</div>
   </div>
 </div>
 
-<div class="sort-bar">
-  <button class="sort-btn active" data-sort="score">⭐ Score</button>
-  <button class="sort-btn" data-sort="profit">💰 Profit</button>
-  <button class="sort-btn" data-sort="newest">🕐 Нові</button>
-  <button class="sort-btn" data-sort="price">💶 Ціна</button>
+<div class="tabs">
+  <div class="tab on" data-tab="deals">🔥 Deals</div>
+  <div class="tab" data-tab="watch">👀 Watch</div>
+  <div class="tab" data-tab="activity">📡 Активність</div>
 </div>
 
-<div class="deals-list" id="dealsList">
-  <div class="skeleton"></div>
-  <div class="skeleton"></div>
-  <div class="skeleton"></div>
+<div class="page on" id="tab-deals">
+  <div class="sortbar">
+    <button class="sb on" data-sort="score">⭐ Score</button>
+    <button class="sb" data-sort="profit">💰 Profit</button>
+    <button class="sb" data-sort="newest">🕐 Нові</button>
+    <button class="sb" data-sort="price">💶 Ціна</button>
+  </div>
+  <div style="padding-top:10px" id="dealsList">
+    <div class="skel"></div><div class="skel"></div>
+  </div>
 </div>
 
-<button class="fab" id="refreshBtn" title="Оновити">↻</button>
+<div class="page" id="tab-watch">
+  <div style="padding-top:10px">
+    <div style="font-size:11px;color:var(--muted);padding:0 2px 10px">
+      Знижка 10–15% — не ідеальна угода, але варто глянути
+    </div>
+    <div id="watchList">
+      <div class="skel"></div><div class="skel"></div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="tab-activity">
+  <div style="padding-top:10px">
+    <div class="activity-section">
+      <div class="section-title">Ринкові ціни</div>
+      <div class="price-grid" id="priceGrid">
+        <div class="skel" style="height:80px"></div>
+        <div class="skel" style="height:80px"></div>
+      </div>
+    </div>
+    <div class="activity-section">
+      <div class="section-title">Останні цикли сканування</div>
+      <div id="logList"><div class="skel" style="height:40px"></div></div>
+    </div>
+  </div>
+</div>
+
+<button class="fab" id="fabBtn">↻</button>
 
 <script>
-  // ── Telegram Web App init ────────────────────────────────
-  const tg = window.Telegram?.WebApp;
-  if (tg) {
-    tg.expand();
-    tg.setHeaderColor('#111318');
-    tg.setBackgroundColor('#0a0b0e');
+const tg = window.Telegram?.WebApp;
+if(tg){tg.expand();tg.setHeaderColor('#111318');tg.setBackgroundColor('#0a0b0e')}
+
+const API = window.location.origin;
+let deals=[], watches=[], filters={gpu:'',profit:0}, sortBy='score', loading=false;
+
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on');
+  document.getElementById('tab-'+t.dataset.tab).classList.add('on');
+  if(t.dataset.tab==='activity') fetchActivity();
+  if(t.dataset.tab==='watch') renderWatches();
+}));
+
+async function fetchDeals(){
+  if(loading) return;
+  loading=true;
+  document.getElementById('fabBtn').classList.add('spin');
+  try{
+    const p=new URLSearchParams({sort_by:sortBy,min_profit:filters.profit||0,limit:100});
+    if(filters.gpu) p.set('gpu',filters.gpu);
+
+    const [dealsRes, watchRes] = await Promise.all([
+      fetch(`${API}/deals?${p}`).then(r=>r.json()),
+      fetch(`${API}/deals?${p}&include_watch=true&all=false`).then(r=>r.json()),
+    ]);
+
+    deals   = (dealsRes.deals||[]).filter(d=>d.is_deal);
+    watches = (watchRes.deals||[]).filter(d=>d.is_watch && !d.is_deal);
+
+    document.getElementById('dealsLabel').textContent  = `${deals.length} угод`;
+    document.getElementById('watchLabel').textContent  = `${watches.length} watch`;
+    renderDeals();
+    renderWatches();
+  } catch(e){
+    showErr('dealsList');
+  } finally{
+    loading=false;
+    document.getElementById('fabBtn').classList.remove('spin');
   }
+}
 
-  // ── State ────────────────────────────────────────────────
-  const API = window.location.origin;
-  let deals   = [];
-  let filters = { gpu: '', profit: 0 };
-  let sortBy  = 'score';
-  let loading = false;
+async function fetchActivity(){
+  try{
+    const data=await fetch(`${API}/activity`).then(r=>r.json());
+    renderPrices(data.market_prices||{});
+    renderLog(data.scrape_log||[]);
+  }catch(e){showErr('logList')}
+}
 
-  // ── Fetch deals ──────────────────────────────────────────
-  async function fetchDeals() {
-    if (loading) return;
-    loading = true;
-    document.getElementById('refreshBtn').classList.add('spinning');
-
-    try {
-      const params = new URLSearchParams({
-        sort_by:    sortBy,
-        min_profit: filters.profit || 0,
-        limit: 100,
-      });
-      if (filters.gpu) params.set('gpu', filters.gpu);
-
-      const res  = await fetch(`${API}/deals?${params}`);
-      const data = await res.json();
-      deals = data.deals || [];
-
-      document.getElementById('statsLabel').textContent =
-        `${deals.length} угод`;
-
-      render();
-    } catch (e) {
-      console.error(e);
-      showError();
-    } finally {
-      loading = false;
-      document.getElementById('refreshBtn').classList.remove('spinning');
-    }
+function renderDeals(){
+  const el=document.getElementById('dealsList');
+  if(!deals.length){
+    el.innerHTML=`<div class="state-msg"><div class="ico">🔍</div>Поки немає угод.<br>Система сканує кожні 45 сек.</div>`;
+    return;
   }
+  el.innerHTML=deals.map((d,i)=>cardHTML(d,i,false)).join('');
+}
 
-  // ── Render ───────────────────────────────────────────────
-  function render() {
-    const list = document.getElementById('dealsList');
-
-    if (!deals.length) {
-      list.innerHTML = `
-        <div class="state-msg">
-          <div class="icon">🔍</div>
-          <div>Поки немає вигідних угод.<br>Система продовжує сканування.</div>
-        </div>`;
-      return;
-    }
-
-    list.innerHTML = deals.map((d, i) => cardHTML(d, i)).join('');
+function renderWatches(){
+  const el=document.getElementById('watchList');
+  if(!watches.length){
+    el.innerHTML=`<div class="state-msg"><div class="ico">👀</div>Поки немає оголошень для спостереження.</div>`;
+    return;
   }
+  el.innerHTML=watches.map((d,i)=>cardHTML(d,i,true)).join('');
+}
 
-  function cardHTML(d, idx) {
-    const riskClass = `risk-${d.risk}`;
-    const riskIcon  = { low: '🟢', medium: '🟡', high: '🔴' }[d.risk] || '⚪';
-    const liqIcon   = { high: '💧💧💧', medium: '💧💧', low: '💧' }[d.liquidity] || '💧';
-    const score     = Math.max(0, Math.min(100, d.deal_score || 0));
-    const isHot     = score >= 60;
-    const delay     = Math.min(idx * 40, 300);
-
-    const ramText   = d.ram ? `${d.ram}GB` : '';
-
-    return `
-      <div class="deal-card ${isHot ? 'deal-hot' : ''}" style="animation-delay:${delay}ms">
-        <div class="card-header">
-          <div class="card-title">${escHtml(d.title)}</div>
-          <div class="gpu-badge">${escHtml(d.gpu)}</div>
+function cardHTML(d,i,isWatch){
+  const rc=d.risk==='low'?'rlow':d.risk==='medium'?'rmed':'rhigh';
+  const ri={low:'🟢',medium:'🟡',high:'🔴'}[d.risk]||'⚪';
+  const li={high:'💧💧💧',medium:'💧💧',low:'💧'}[d.liquidity]||'💧';
+  const sc=Math.max(0,Math.min(100,d.deal_score||0));
+  const discPct=Math.round(d.discount_percent||0);
+  return `
+  <div class="card${isWatch?' watch-card':sc>=60?' hot':''}" style="animation-delay:${Math.min(i*35,280)}ms">
+    <div class="ch">
+      <div class="ctitle">${esc(d.title)}</div>
+      <div style="display:flex;gap:3px;flex-shrink:0">
+        ${isWatch?'<div class="watch-badge">👀 WATCH</div>':''}
+        <div class="gbadge">${esc(d.gpu)}</div>
+      </div>
+    </div>
+    <div class="cb">
+      <div class="scorebar">
+        <div class="${isWatch?'scorefill watchfill':'scorefill'}" style="width:${isWatch?discPct*2:sc}%"></div>
+      </div>
+      <div class="prow">
+        <div class="pask">€${Math.round(d.price)}</div>
+        <div class="pmkt">€${Math.round(d.market_price)}</div>
+        <div class="pbadge${isWatch?' watch':''}">
+          ${isWatch?`-${discPct}%`:` +€${Math.round(d.profit)} (${Math.round(d.profit_percent)}%)`}
         </div>
-        <div class="card-body">
-          <div class="score-bar">
-            <div class="score-fill" style="width:${score}%"></div>
-          </div>
-          <div class="price-row">
-            <div class="price-ask">€${Math.round(d.price)}</div>
-            <div class="price-market">€${Math.round(d.market_price)}</div>
-            <div class="profit-badge">+€${Math.round(d.profit)} (${Math.round(d.profit_percent)}%)</div>
-          </div>
-          <div class="meta-row">
-            <span class="meta-tag ${riskClass}">${riskIcon} ${cap(d.risk)}</span>
-            <span class="meta-tag">${liqIcon} ${cap(d.liquidity)}</span>
-            ${ramText ? `<span class="meta-tag">💾 ${ramText}</span>` : ''}
-            <span class="meta-tag">📍 ${escHtml(d.location || 'NL')}</span>
-            <span class="meta-tag">⭐ ${score}/100</span>
-          </div>
-          <div class="card-cta">
-            <a class="btn-primary" href="${escHtml(d.url)}" target="_blank"
-               onclick="tg?.openLink?.('${escHtml(d.url)}'); return false;">
-              🔗 Відкрити оголошення
-            </a>
-          </div>
-        </div>
-      </div>`;
+      </div>
+      <div class="tags">
+        <span class="tag ${rc}">${ri} ${cap(d.risk)}</span>
+        <span class="tag">${li} ${cap(d.liquidity)}</span>
+        ${d.ram?`<span class="tag">💾 ${d.ram}GB</span>`:''}
+        <span class="tag">📍 ${esc(d.location||'NL')}</span>
+        ${!isWatch?`<span class="tag">⭐ ${sc}/100</span>`:`<span class="tag">📉 -${discPct}%</span>`}
+      </div>
+      <a class="btn" href="${esc(d.url)}" target="_blank"
+         onclick="tg?.openLink?.('${esc(d.url)}');return false;">🔗 Відкрити оголошення</a>
+    </div>
+  </div>`;
+}
+
+function renderPrices(prices){
+  document.getElementById('priceGrid').innerHTML=Object.entries(prices).map(([gpu,p])=>`
+    <div class="price-card">
+      <div class="price-gpu">${gpu}</div>
+      <div class="price-val">€${p.market}</div>
+      <div class="price-sub">Resale ~€${p.resale}</div>
+      <div class="price-badge ${p.source==='dynamic'?'dynamic':'default'}">
+        ${p.source==='dynamic'?`📊 ${p.sample_size} оголошень`:'📌 Default'}
+      </div>
+    </div>`).join('');
+}
+
+function renderLog(log){
+  const el=document.getElementById('logList');
+  if(!log.length){
+    el.innerHTML=`<div class="state-msg" style="padding:20px"><div class="ico">⏳</div>Перший цикл ще не завершився</div>`;
+    return;
   }
+  el.innerHTML=log.map(r=>{
+    const t=new Date(r.scraped_at+'Z');
+    const time=t.toLocaleTimeString('uk',{hour:'2-digit',minute:'2-digit'});
+    const hasDeal=r.deals_found>0;
+    const hasWatch=(r.watch_found||0)>0;
+    const dotClass=hasDeal?'dot-deal':hasWatch?'dot-watch':'dot-idle';
+    return `<div class="log-row">
+      <div class="log-dot ${dotClass}"></div>
+      <div class="log-time">${time}</div>
+      <div class="log-body">
+        <span class="log-count">${r.total_scraped} скрап</span>
+        ${r.new_found?`<span class="log-count log-new"> · +${r.new_found} нових</span>`:''}
+        ${hasDeal?`<span class="log-count log-deal"> · 🔥 ${r.deals_found} deals</span>`:''}
+        ${hasWatch?`<span class="log-count log-watch"> · 👀 ${r.watch_found} watch</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
 
-  function showError() {
-    document.getElementById('dealsList').innerHTML = `
-      <div class="state-msg">
-        <div class="icon">⚠️</div>
-        <div>Помилка завантаження.<br>Перевірте підключення.</div>
-      </div>`;
-  }
+function showErr(id){
+  document.getElementById(id).innerHTML=`<div class="state-msg"><div class="ico">⚠️</div>Помилка завантаження</div>`;
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function cap(s){return s?s[0].toUpperCase()+s.slice(1):''}
 
-  // ── Helpers ──────────────────────────────────────────────
-  function escHtml(s) {
-    return String(s || '')
-      .replace(/&/g,'&amp;')
-      .replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;')
-      .replace(/"/g,'&quot;');
-  }
-  function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
-
-  // ── Filter chips ──────────────────────────────────────────
-  document.getElementById('filterChips').addEventListener('click', e => {
-    const btn = e.target.closest('.chip');
-    if (!btn) return;
-
-    // GPU chips
-    if ('gpu' in btn.dataset) {
-      document.querySelectorAll('.chip[data-gpu]').forEach(c => c.classList.remove('active'));
-      btn.classList.add('active');
-      filters.gpu = btn.dataset.gpu;
-      fetchDeals();
-      return;
-    }
-
-    // Profit chips
-    if ('profit' in btn.dataset) {
-      const val = parseInt(btn.dataset.profit);
-      if (filters.profit === val) {
-        btn.classList.remove('active');
-        filters.profit = 0;
-      } else {
-        document.querySelectorAll('.chip[data-profit]').forEach(c => c.classList.remove('active'));
-        btn.classList.add('active');
-        filters.profit = val;
-      }
-      fetchDeals();
-    }
-  });
-
-  // ── Sort buttons ──────────────────────────────────────────
-  document.querySelector('.sort-bar').addEventListener('click', e => {
-    const btn = e.target.closest('.sort-btn');
-    if (!btn) return;
-    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    sortBy = btn.dataset.sort;
+document.getElementById('filterChips').addEventListener('click',e=>{
+  const b=e.target.closest('.chip');
+  if(!b) return;
+  if('gpu' in b.dataset){
+    document.querySelectorAll('.chip[data-gpu]').forEach(c=>c.classList.remove('on'));
+    b.classList.add('on'); filters.gpu=b.dataset.gpu; fetchDeals();
+  } else if('profit' in b.dataset){
+    const v=parseInt(b.dataset.profit);
+    if(filters.profit===v){b.classList.remove('on');filters.profit=0;}
+    else{document.querySelectorAll('.chip[data-profit]').forEach(c=>c.classList.remove('on'));b.classList.add('on');filters.profit=v;}
     fetchDeals();
-  });
+  }
+});
 
-  // ── Refresh FAB ───────────────────────────────────────────
-  document.getElementById('refreshBtn').addEventListener('click', fetchDeals);
+document.querySelector('.sortbar').addEventListener('click',e=>{
+  const b=e.target.closest('.sb');
+  if(!b) return;
+  document.querySelectorAll('.sb').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); sortBy=b.dataset.sort; fetchDeals();
+});
 
-  // ── Auto-refresh every 30s ────────────────────────────────
-  setInterval(fetchDeals, 30_000);
+document.getElementById('fabBtn').addEventListener('click',()=>{fetchDeals();fetchActivity();});
 
-  // ── Init ──────────────────────────────────────────────────
-  fetchDeals();
+setInterval(fetchDeals, 30_000);
+setInterval(fetchActivity, 60_000);
+fetchDeals();
 </script>
 </body>
 </html>
