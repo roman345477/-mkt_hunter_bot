@@ -124,9 +124,11 @@ def extract_ram(text: str) -> int:
 
 
 def map_condition(raw: str) -> str:
+    raw = raw.lower().replace("_", " ")
     if "nieuw" in raw or "new" in raw: return "new"
     if "goed" in raw or "good" in raw: return "like_new"
-    return "used"
+    if "gebruikt" in raw or "used" in raw: return "used"
+    return "new"  # якщо невідомо — вважаємо новим
 
 
 async def fetch_listings(query: str, client: httpx.AsyncClient) -> list[dict]:
