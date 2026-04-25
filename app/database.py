@@ -1,5 +1,5 @@
 """
-Database layer — SQLite with deduplication + scrape log + all listings.
+Database — SQLite with dedup, scrape log, auto-cleanup of old records.
 """
 
 import sqlite3
@@ -65,6 +65,19 @@ def init_db():
     conn.commit()
     conn.close()
     logger.info("DB initialized")
+
+
+def cleanup_old_records():
+    """Delete deals older than 30 days."""
+    conn = get_conn()
+    deleted = conn.execute("""
+        DELETE FROM deals
+        WHERE created_at < datetime('now', '-30 days')
+    """).rowcount
+    if deleted:
+        logger.info(f"🧹 Cleaned up {deleted} old records")
+    conn.commit()
+    conn.close()
 
 
 def log_scrape(total_scraped: int, new_found: int, deals_found: int, watch_found: int = 0):
@@ -134,9 +147,7 @@ def get_deals(
 
     if only_deals and not include_watch:
         filters.append("is_deal = 1")
-    elif include_watch and not only_deals:
-        filters.append("(is_deal = 1 OR is_watch = 1)")
-    elif only_deals and include_watch:
+    elif include_watch:
         filters.append("(is_deal = 1 OR is_watch = 1)")
 
     if min_profit > 0:
