@@ -113,12 +113,16 @@ def evaluate(listing: dict) -> Optional[DealEvaluation]:
     condition = listing.get("condition", "")
 
     if price <= 0 or price > MAX_PRICE_EUR:
+        logger.info(f"SKIP price: {listing.get('title','')[:30]} price={price}")
         return None
     if gpu not in MARKET_PRICES_DEFAULT:
+        logger.info(f"SKIP gpu: {listing.get('title','')[:30]} gpu='{gpu}'")
         return None
     if ram and ram < 16:
+        logger.info(f"SKIP ram: {listing.get('title','')[:30]} ram={ram}")
         return None
     if condition not in ("new", "like_new"):
+        logger.info(f"SKIP condition: {listing.get('title','')[:30]} condition='{condition}'")
         return None
 
     prices       = get_market_prices(gpu)
