@@ -1,19 +1,17 @@
 """
-Marktplaats scraper — expanded search queries for more coverage.
+Marktplaats scraper — anti-block: night pause + longer delays.
 """
 
-import time
 import random
 import logging
 import re
 import asyncio
-import httpx
 from datetime import datetime
 from typing import Optional
+import httpx
 
 logger = logging.getLogger(__name__)
 
-# Розширені пошукові запити — більше покриття
 SEARCH_QUERIES = [
     "RTX 4060 laptop",
     "RTX 4050 laptop",
@@ -34,6 +32,12 @@ USER_AGENTS = [
 ]
 
 
+def is_night_time() -> bool:
+    """Pause scraping between 00:00-07:00 Amsterdam time."""
+    hour = datetime.utcnow().hour + 1  # UTC+1 Amsterdam
+    return 0 <= hour < 7
+
+
 def get_headers() -> dict:
     return {
         "User-Agent": random.choice(USER_AGENTS),
@@ -47,7 +51,7 @@ def get_headers() -> dict:
     }
 
 
-def build_search_params(query: str, offset: int = 0) -> dict:
+def build_search_params(query: str) -> dict:
     return {
         "query": query,
         "categoryId": "31",
@@ -58,7 +62,7 @@ def build_search_params(query: str, offset: int = 0) -> dict:
         "postcode": "",
         "sortBy": "SORT_INDEX",
         "sortOrder": "DECREASING",
-        "offset": offset,
+        "offset": 0,
         "limit": 30,
         "searchInTitleAndDescription": "true",
         "attributes": "",
@@ -127,14 +131,14 @@ def map_condition(raw: str) -> str:
     raw = raw.lower().replace("_", " ")
     if "nieuw" in raw or "new" in raw: return "new"
     if "goed" in raw or "good" in raw: return "like_new"
-    if "gebruikt" in raw or "used" in raw: return "used"
-    return "new"  # якщо невідомо — вважаємо новим
+    return "new"  # невідомо — вважаємо новим
 
 
 async def fetch_listings(query: str, client: httpx.AsyncClient) -> list[dict]:
     listings = []
     try:
-        await asyncio.sleep(random.uniform(1.0, 2.5))
+        # Довша затримка між запитами — менше шансів блокування
+        await asyncio.sleep(random.uniform(3, 7))
         resp = await client.get(
             SEARCH_URL,
             params=build_search_params(query),
@@ -153,11 +157,16 @@ async def fetch_listings(query: str, client: httpx.AsyncClient) -> list[dict]:
     except httpx.TimeoutException:
         logger.error(f"Timeout for '{query}'")
     except Exception as e:
-        logger.error(f"Fetch error for '{query}': {e}")
+        logger.error(f"Fetch error '{query}': {e}")
     return listings
 
 
 async def scrape_all() -> list[dict]:
+    # Пауза вночі — між 00:00 і 07:00 нові оголошення майже не з'являються
+    if is_night_time():
+        logger.info("🌙 Night time — skipping scrape")
+        return []
+
     all_listings = []
     seen_ids     = set()
 
@@ -168,7 +177,6 @@ async def scrape_all() -> list[dict]:
                 if item["item_id"] not in seen_ids:
                     seen_ids.add(item["item_id"])
                     all_listings.append(item)
-            await asyncio.sleep(random.uniform(1.5, 3.0))
 
     logger.info(f"Scraped {len(all_listings)} unique listings")
     return all_listings
