@@ -1,7 +1,3 @@
-"""
-Worker — scrape → update market prices → evaluate → notify.
-"""
-
 import asyncio
 import logging
 import os
@@ -25,23 +21,25 @@ def handle_signal(*_):
 async def run_cycle():
     logger.info("▶ Scrape cycle started")
     listings = await scrape_all()
-    new_count = deal_count = watch_count = 0
+    new_count = 0
+    deal_count = 0
+    watch_count = 0
 
     update_market_prices(listings)
 
-   for listing in listings:
-    d = evaluate(listing)
-    if d is None:
-        continue
-    d = d.to_dict()
+    for listing in listings:
+        d = evaluate(listing)
+        if d is None:
+            continue
+        d = d.to_dict()
         if upsert_deal(d):
             new_count += 1
             if d["is_deal"]:
                 deal_count += 1
-                logger.info(f"💰 DEAL: {d['title'][:40]} | €{d['price']} | profit €{d['profit']} ({d['profit_percent']}%)")
+                logger.info(f"DEAL: {d['title'][:40]} | €{d['price']} | profit €{d['profit']}")
             elif d["is_watch"]:
                 watch_count += 1
-                logger.info(f"👀 WATCH: {d['title'][:40]} | €{d['price']} | discount {d['discount_percent']}%")
+                logger.info(f"WATCH: {d['title'][:40]} | €{d['price']} | -{d['discount_percent']}%")
 
     log_scrape(
         total_scraped=len(listings),
@@ -51,7 +49,6 @@ async def run_cycle():
     )
     logger.info(f"✅ Done: {len(listings)} scraped, {new_count} new, {deal_count} deals, {watch_count} watches")
 
-    # Notifications
     for deal in get_pending_notifications():
         if deal["is_deal"]:
             success = await send_deal_alert(deal)
@@ -63,7 +60,10 @@ async def run_cycle():
 
 
 async def main():
-    logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    )
     signal.signal(signal.SIGTERM, handle_signal)
     signal.signal(signal.SIGINT, handle_signal)
     init_db()
@@ -75,7 +75,8 @@ async def main():
         except Exception as e:
             logger.error(f"Cycle error: {e}", exc_info=True)
         for _ in range(SCRAPE_INTERVAL):
-            if not running: break
+            if not running:
+                break
             await asyncio.sleep(1)
 
 
