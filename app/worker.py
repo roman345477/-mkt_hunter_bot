@@ -1,3 +1,7 @@
+"""
+Worker — scrape → evaluate → notify. With nightly pause and DB cleanup.
+"""
+
 import asyncio
 import logging
 import os
@@ -5,12 +9,16 @@ import signal
 
 from scraper import scrape_all
 from deal_engine import evaluate, update_market_prices
-from database import init_db, upsert_deal, get_pending_notifications, mark_notified, log_scrape
+from database import (
+    init_db, upsert_deal, get_pending_notifications,
+    mark_notified, log_scrape, cleanup_old_records
+)
 from telegram_bot import send_deal_alert, send_watch_alert, notify_startup
 
 logger = logging.getLogger(__name__)
-SCRAPE_INTERVAL = int(os.getenv("SCRAPE_INTERVAL", "45"))
+SCRAPE_INTERVAL = int(os.getenv("SCRAPE_INTERVAL", "90"))  # збільшено до 90 сек
 running = True
+_cycle_count = 0
 
 
 def handle_signal(*_):
@@ -19,12 +27,17 @@ def handle_signal(*_):
 
 
 async def run_cycle():
+    global _cycle_count
+    _cycle_count += 1
+
     logger.info("▶ Scrape cycle started")
     listings = await scrape_all()
-    new_count = 0
-    deal_count = 0
-    watch_count = 0
 
+    if not listings:
+        log_scrape(0, 0, 0, 0)
+        return
+
+    new_count = deal_count = watch_count = 0
     update_market_prices(listings)
 
     for listing in listings:
@@ -36,17 +49,12 @@ async def run_cycle():
             new_count += 1
             if d["is_deal"]:
                 deal_count += 1
-                logger.info(f"DEAL: {d['title'][:40]} | €{d['price']} | profit €{d['profit']}")
+                logger.info(f"💰 DEAL: {d['title'][:40]} | €{d['price']} | profit €{d['profit']}")
             elif d["is_watch"]:
                 watch_count += 1
-                logger.info(f"WATCH: {d['title'][:40]} | €{d['price']} | -{d['discount_percent']}%")
+                logger.info(f"👀 WATCH: {d['title'][:40]} | €{d['price']} | -{d['discount_percent']}%")
 
-    log_scrape(
-        total_scraped=len(listings),
-        new_found=new_count,
-        deals_found=deal_count,
-        watch_found=watch_count,
-    )
+    log_scrape(len(listings), new_count, deal_count, watch_count)
     logger.info(f"✅ Done: {len(listings)} scraped, {new_count} new, {deal_count} deals, {watch_count} watches")
 
     for deal in get_pending_notifications():
@@ -57,6 +65,10 @@ async def run_cycle():
         if success:
             mark_notified(deal["item_id"])
         await asyncio.sleep(0.5)
+
+    # Cleanup старих записів раз на 100 циклів (~2.5 год)
+    if _cycle_count % 100 == 0:
+        cleanup_old_records()
 
 
 async def main():
@@ -69,6 +81,7 @@ async def main():
     init_db()
     await notify_startup()
     logger.info(f"🔍 Worker started — interval {SCRAPE_INTERVAL}s")
+
     while running:
         try:
             await run_cycle()
