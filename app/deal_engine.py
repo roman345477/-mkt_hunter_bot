@@ -1,8 +1,7 @@
 """
-Deal Engine — dynamic market prices + profit/risk/liquidity evaluation.
+Deal Engine — dynamic market prices using 75th percentile.
 """
 
-import re
 import logging
 import statistics
 from dataclasses import dataclass, asdict
@@ -28,10 +27,23 @@ MEDIUM_LIQUIDITY_BRANDS = [
     "samsung", "razer", "lg", "huawei",
 ]
 
-MIN_DISCOUNT_PCT  = 15    # знижено з 20% до 15%
-WATCH_DISCOUNT_PCT = 10   # "майже угода" — для WATCH алертів
-MIN_PROFIT_EUR    = 100   # знижено з 150 до 100
-MAX_PRICE_EUR     = 1000
+MIN_DISCOUNT_PCT   = 15
+WATCH_DISCOUNT_PCT = 10
+MIN_PROFIT_EUR     = 100
+MAX_PRICE_EUR      = 1000
+MIN_DESC_LEN       = 30
+
+
+def percentile(data: list, p: float) -> float:
+    if not data:
+        return 0
+    s = sorted(data)
+    k = (len(s) - 1) * p / 100
+    f = int(k)
+    c = f + 1
+    if c >= len(s):
+        return s[f]
+    return s[f] + (k - f) * (s[c] - s[f])
 
 
 def update_market_prices(all_listings: list):
@@ -45,16 +57,20 @@ def update_market_prices(all_listings: list):
             if l.get("gpu") == gpu and 400 <= l.get("price", 0) <= 1400
         ]
         if len(prices) < 5:
-            logger.info(f"Not enough data for {gpu} ({len(prices)} samples), using default")
             continue
-        median_price = statistics.median(prices)
-        market = round(median_price * 1.05)
-        resale = round(median_price * 0.98)
+        p75    = percentile(prices, 75)
+        market = round(p75)
+        resale = round(p75 * 0.93)
         _price_cache[gpu] = {
             "market": market, "resale": resale, "updated": now,
-            "sample_size": len(prices), "median_raw": round(median_price),
+            "sample_size": len(prices),
+            "median_raw": round(statistics.median(prices)),
+            "p75": round(p75),
         }
-        logger.info(f"📊 {gpu}: market=€{market} resale=€{resale} (n={len(prices)}, median=€{round(median_price)})")
+        logger.info(
+            f"📊 {gpu}: market=€{market} resale=€{resale} "
+            f"(n={len(prices)}, median=€{round(statistics.median(prices))}, p75=€{round(p75)})"
+        )
 
 
 def get_market_prices(gpu: str) -> dict:
@@ -69,7 +85,8 @@ def get_price_cache_info() -> dict:
         result[gpu] = {
             "market": data["market"], "resale": data["resale"],
             "sample_size": data.get("sample_size", 0),
-            "updated": data["updated"].isoformat(), "source": "dynamic",
+            "updated": data["updated"].isoformat(),
+            "source": "dynamic", "p75": data.get("p75", 0),
         }
     for gpu, data in MARKET_PRICES_DEFAULT.items():
         if gpu not in result:
@@ -99,7 +116,7 @@ class DealEvaluation:
     risk: str = "high"
     liquidity: str = "low"
     is_deal: bool = False
-    is_watch: bool = False   # нове поле — "майже угода"
+    is_watch: bool = False
     deal_score: float = 0.0
 
     def to_dict(self) -> dict:
@@ -111,18 +128,18 @@ def evaluate(listing: dict) -> Optional[DealEvaluation]:
     gpu       = listing.get("gpu", "")
     ram       = listing.get("ram", 0)
     condition = listing.get("condition", "")
+    desc      = listing.get("description", "") or ""
+    title     = listing.get("title", "") or ""
 
     if price <= 0 or price > MAX_PRICE_EUR:
-        logger.info(f"SKIP price: {listing.get('title','')[:30]} price={price}")
         return None
     if gpu not in MARKET_PRICES_DEFAULT:
-        logger.info(f"SKIP gpu: {listing.get('title','')[:30]} gpu='{gpu}'")
         return None
     if ram and ram < 16:
-        logger.info(f"SKIP ram: {listing.get('title','')[:30]} ram={ram}")
         return None
     if condition not in ("new", "like_new"):
-        logger.info(f"SKIP condition: {listing.get('title','')[:30]} condition='{condition}'")
+        return None
+    if len(desc) < MIN_DESC_LEN and len(title) < 20:
         return None
 
     prices       = get_market_prices(gpu)
@@ -133,10 +150,7 @@ def evaluate(listing: dict) -> Optional[DealEvaluation]:
     profit_percent = round((profit / resale_price) * 100, 1)
     discount_pct   = round(((market_price - price) / market_price) * 100, 1)
 
-    title     = listing.get("title", "")
-    desc      = listing.get("description", "")
-    full_text = (title + " " + desc).lower()
-
+    full_text  = (title + " " + desc).lower()
     liquidity  = assess_liquidity(full_text)
     risk       = assess_risk(listing, discount_pct)
     is_deal    = discount_pct >= MIN_DISCOUNT_PCT and profit >= MIN_PROFIT_EUR
@@ -169,7 +183,7 @@ def assess_risk(listing: dict, discount_pct: float) -> str:
     score = 0
     if discount_pct > 45: score += 3
     elif discount_pct > 35: score += 1
-    desc_len = len(listing.get("description", ""))
+    desc_len = len(listing.get("description", "") or "")
     if desc_len < 50: score += 2
     elif desc_len < 150: score += 1
     items = listing.get("seller_items", 0)
