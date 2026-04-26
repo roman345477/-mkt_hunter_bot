@@ -15,77 +15,87 @@
     .header-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
     .logo{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;letter-spacing:.06em;color:var(--accent)}
     .logo span{color:var(--txt)}
-    .header-stats{display:flex;gap:6px}
+    .hstats{display:flex;gap:6px}
     .pill{font-size:10px;background:rgba(0,229,255,.08);color:var(--accent);border:1px solid rgba(0,229,255,.2);border-radius:20px;padding:2px 9px}
-    .pill.watch{background:rgba(255,140,0,.08);color:var(--orange);border-color:rgba(255,140,0,.2)}
+    .pill.w{background:rgba(255,140,0,.08);color:var(--orange);border-color:rgba(255,140,0,.2)}
     .chips{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none}
     .chips::-webkit-scrollbar{display:none}
-    .chip{flex-shrink:0;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;border:1px solid var(--border);color:var(--muted);cursor:pointer;letter-spacing:.04em;transition:all .15s}
+    .chip{flex-shrink:0;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all .15s}
     .chip.on{background:rgba(0,229,255,.1);border-color:var(--accent);color:var(--accent)}
 
     .tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface)}
-    .tab{flex:1;padding:9px;font-size:12px;font-weight:600;text-align:center;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;letter-spacing:.04em}
+    .tab{flex:1;padding:8px 4px;font-size:11px;font-weight:600;text-align:center;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
     .tab.on{color:var(--accent);border-bottom-color:var(--accent)}
 
     .sortbar{display:flex;gap:4px;padding:8px 16px 0}
-    .sb{font-size:11px;font-weight:500;padding:3px 8px;border-radius:5px;border:1px solid var(--border);color:var(--muted);cursor:pointer;background:transparent;transition:all .15s}
+    .sb{font-size:11px;padding:3px 8px;border-radius:5px;border:1px solid var(--border);color:var(--muted);cursor:pointer;background:transparent;transition:all .15s}
     .sb.on{background:var(--card);color:var(--txt);border-color:var(--accent)}
 
     .page{display:none;padding:10px 14px 80px}
     .page.on{display:block}
 
-    .card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:8px;animation:slideIn .2s ease-out}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:8px;animation:fadeUp .2s ease-out}
     .card.hot{border-color:rgba(0,255,136,.25)}
-    .card.watch-card{border-color:rgba(255,140,0,.2)}
-    @keyframes slideIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+    .card.wcard{border-color:rgba(255,140,0,.2)}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
     .ch{padding:10px 12px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
     .ctitle{font-size:13px;font-weight:600;line-height:1.25;flex:1}
-    .gbadge{font-size:9px;font-weight:700;letter-spacing:.06em;padding:2px 6px;border-radius:3px;background:rgba(0,229,255,.1);color:var(--accent);border:1px solid rgba(0,229,255,.2);white-space:nowrap;flex-shrink:0}
-    .watch-badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;background:rgba(255,140,0,.1);color:var(--orange);border:1px solid rgba(255,140,0,.2);white-space:nowrap;flex-shrink:0;margin-right:4px}
+    .badges{display:flex;gap:3px;flex-shrink:0;align-items:center}
+    .gbadge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;background:rgba(0,229,255,.1);color:var(--accent);border:1px solid rgba(0,229,255,.2);white-space:nowrap}
+    .wbadge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;background:rgba(255,140,0,.1);color:var(--orange);border:1px solid rgba(255,140,0,.2);white-space:nowrap}
     .cb{padding:8px 12px 10px}
-    .scorebar{height:2px;background:var(--border);border-radius:2px;margin-bottom:8px;overflow:hidden}
-    .scorefill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--green));transition:width .4s}
-    .watchfill{background:linear-gradient(90deg,var(--orange),var(--yellow))}
-    .prow{display:flex;align-items:baseline;gap:8px;margin-bottom:7px}
+    .sbar{height:2px;background:var(--border);border-radius:2px;margin-bottom:8px;overflow:hidden}
+    .sfill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--green))}
+    .wfill{background:linear-gradient(90deg,var(--orange),var(--yellow))}
+    .prow{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
     .pask{font-size:22px;font-weight:700;font-family:'Rajdhani',sans-serif}
     .pmkt{font-size:11px;color:var(--muted);text-decoration:line-through}
     .pbadge{margin-left:auto;font-size:13px;font-weight:700;color:var(--green);font-family:'Rajdhani',sans-serif}
-    .pbadge.watch{color:var(--orange)}
+    .pbadge.w{color:var(--orange)}
     .tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
     .tag{font-size:10px;padding:2px 6px;border-radius:3px;background:rgba(255,255,255,.04);color:var(--muted);border:1px solid var(--border)}
     .tag.rlow{color:var(--green);background:rgba(0,255,136,.06);border-color:rgba(0,255,136,.2)}
     .tag.rmed{color:var(--yellow);background:rgba(255,204,0,.06);border-color:rgba(255,204,0,.2)}
     .tag.rhigh{color:var(--red);background:rgba(255,68,102,.06);border-color:rgba(255,68,102,.2)}
-    .btn{width:100%;padding:7px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.25);border-radius:6px;color:var(--accent);font-size:12px;font-weight:600;text-align:center;text-decoration:none;display:block;letter-spacing:.04em}
+    .tag.listed{color:var(--accent);background:rgba(0,229,255,.06);border-color:rgba(0,229,255,.15)}
+    .cbtn{width:100%;padding:7px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.25);border-radius:6px;color:var(--accent);font-size:12px;font-weight:600;text-align:center;text-decoration:none;display:block}
 
-    .activity-section{margin-bottom:16px}
-    .section-title{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
-    .price-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
-    .price-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
-    .price-gpu{font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.06em;margin-bottom:4px}
-    .price-val{font-size:18px;font-weight:700;font-family:'Rajdhani',sans-serif}
-    .price-sub{font-size:10px;color:var(--muted);margin-top:2px}
-    .price-badge{display:inline-block;font-size:9px;padding:1px 5px;border-radius:3px;margin-top:4px}
-    .price-badge.dynamic{background:rgba(0,255,136,.1);color:var(--green);border:1px solid rgba(0,255,136,.2)}
-    .price-badge.default{background:rgba(90,96,112,.1);color:var(--muted);border:1px solid var(--border)}
+    /* Activity */
+    .sec-title{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+    .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+    .pcard{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+    .pgpu{font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.06em;margin-bottom:4px}
+    .pval{font-size:18px;font-weight:700;font-family:'Rajdhani',sans-serif}
+    .psub{font-size:10px;color:var(--muted);margin-top:2px}
+    .pbdg{display:inline-block;font-size:9px;padding:1px 5px;border-radius:3px;margin-top:4px}
+    .pbdg.dyn{background:rgba(0,255,136,.1);color:var(--green);border:1px solid rgba(0,255,136,.2)}
+    .pbdg.def{background:rgba(90,96,112,.1);color:var(--muted);border:1px solid var(--border)}
+    .lrow{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--card);border:1px solid var(--border);border-radius:7px;margin-bottom:5px}
+    .ltime{font-size:10px;color:var(--muted);white-space:nowrap;min-width:42px}
+    .lbody{flex:1;font-size:11px}
+    .lc{font-size:10px;font-weight:600}
+    .ln{color:var(--accent)}.ld{color:var(--green)}.lw2{color:var(--orange)}
+    .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+    .ddeal{background:var(--green)}.dwatch{background:var(--orange)}.didle{background:var(--muted)}
 
-    .log-row{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--card);border:1px solid var(--border);border-radius:7px;margin-bottom:5px}
-    .log-time{font-size:10px;color:var(--muted);white-space:nowrap;min-width:42px}
-    .log-body{flex:1;font-size:11px}
-    .log-count{font-size:10px;font-weight:600}
-    .log-new{color:var(--accent)}
-    .log-deal{color:var(--green)}
-    .log-watch{color:var(--orange)}
-    .log-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-    .dot-deal{background:var(--green)}
-    .dot-watch{background:var(--orange)}
-    .dot-idle{background:var(--muted)}
+    /* Settings */
+    .sform{display:flex;flex-direction:column;gap:16px}
+    .sfield{display:flex;flex-direction:column;gap:6px}
+    .sfield label{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+    .srow{display:flex;align-items:center;gap:10px}
+    .srow input[type=range]{flex:1;accent-color:var(--accent);height:4px;cursor:pointer}
+    .sval{font-size:13px;font-weight:700;font-family:'Rajdhani',sans-serif;min-width:56px;text-align:right;color:var(--accent)}
+    .grow{display:flex;gap:8px}
+    .gbtn{flex:1;padding:8px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+    .gbtn.on{background:rgba(0,229,255,.1);border-color:var(--accent);color:var(--accent)}
+    .savebtn{width:100%;padding:12px;background:var(--accent);border:none;border-radius:8px;color:#000;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;letter-spacing:.04em}
+    .smsg{text-align:center;font-size:12px;color:var(--green);margin-top:8px;min-height:18px}
+    .sdivider{border:none;border-top:1px solid var(--border);margin:4px 0}
 
     .state-msg{text-align:center;padding:50px 20px;color:var(--muted);font-size:13px}
     .state-msg .ico{font-size:36px;margin-bottom:10px}
     .skel{background:var(--card);border:1px solid var(--border);border-radius:10px;height:140px;margin-bottom:8px;animation:pulse 1.4s ease-in-out infinite}
     @keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
-
     .fab{position:fixed;bottom:20px;right:16px;width:44px;height:44px;border-radius:50%;background:var(--accent);color:#000;font-size:18px;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,229,255,.3)}
     .fab.spin{animation:spin .8s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
@@ -96,9 +106,9 @@
 <div class="header">
   <div class="header-row">
     <div class="logo">HUNTER<span>.</span></div>
-    <div class="header-stats">
-      <div class="pill" id="dealsLabel">0 угод</div>
-      <div class="pill watch" id="watchLabel">0 watch</div>
+    <div class="hstats">
+      <div class="pill" id="dealsLabel">0 deals</div>
+      <div class="pill w" id="watchLabel">0 watch</div>
     </div>
   </div>
   <div class="chips" id="filterChips">
@@ -112,17 +122,19 @@
 </div>
 
 <div class="tabs">
-  <div class="tab on" data-tab="deals">🔥 Deals</div>
-  <div class="tab" data-tab="watch">👀 Watch</div>
-  <div class="tab" data-tab="activity">📡 Активність</div>
+  <div class="tab on" data-tab="deals">Deals</div>
+  <div class="tab" data-tab="watch">Watch</div>
+  <div class="tab" data-tab="activity">Активність</div>
+  <div class="tab" data-tab="settings">Налаштування</div>
 </div>
 
 <div class="page on" id="tab-deals">
   <div class="sortbar">
-    <button class="sb on" data-sort="score">⭐ Score</button>
-    <button class="sb" data-sort="profit">💰 Profit</button>
-    <button class="sb" data-sort="newest">🕐 Нові</button>
-    <button class="sb" data-sort="price">💶 Ціна</button>
+    <button class="sb on" data-sort="score">Score</button>
+    <button class="sb" data-sort="profit">Profit</button>
+    <button class="sb" data-sort="newest">Нові</button>
+    <button class="sb" data-sort="price">Ціна</button>
+    <button class="sb" data-sort="listed">Дата</button>
   </div>
   <div style="padding-top:10px" id="dealsList">
     <div class="skel"></div><div class="skel"></div>
@@ -131,27 +143,85 @@
 
 <div class="page" id="tab-watch">
   <div style="padding-top:10px">
-    <div style="font-size:11px;color:var(--muted);padding:0 2px 10px">
-      Знижка 10–15% — не ідеальна угода, але варто глянути
-    </div>
-    <div id="watchList">
-      <div class="skel"></div><div class="skel"></div>
-    </div>
+    <div style="font-size:11px;color:var(--muted);padding:0 2px 10px">Знижка 10–15% — варто перевірити</div>
+    <div id="watchList"><div class="skel"></div><div class="skel"></div></div>
   </div>
 </div>
 
 <div class="page" id="tab-activity">
   <div style="padding-top:10px">
-    <div class="activity-section">
-      <div class="section-title">Ринкові ціни</div>
-      <div class="price-grid" id="priceGrid">
+    <div style="margin-bottom:16px">
+      <div class="sec-title">Ринкові ціни (75-й перцентиль)</div>
+      <div class="pgrid" id="priceGrid">
         <div class="skel" style="height:80px"></div>
         <div class="skel" style="height:80px"></div>
       </div>
     </div>
-    <div class="activity-section">
-      <div class="section-title">Останні цикли сканування</div>
+    <div>
+      <div class="sec-title">Останні цикли сканування</div>
       <div id="logList"><div class="skel" style="height:40px"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="tab-settings">
+  <div style="padding-top:12px">
+    <div class="sform">
+
+      <div class="sfield">
+        <label>Мін. знижка для Deal</label>
+        <div class="srow">
+          <input type="range" id="sMinDisc" min="5" max="40" step="1" value="15">
+          <div class="sval" id="vMinDisc">15%</div>
+        </div>
+      </div>
+
+      <div class="sfield">
+        <label>Мін. знижка для Watch</label>
+        <div class="srow">
+          <input type="range" id="sWatchDisc" min="3" max="20" step="1" value="10">
+          <div class="sval" id="vWatchDisc">10%</div>
+        </div>
+      </div>
+
+      <div class="sfield">
+        <label>Мінімальний Profit</label>
+        <div class="srow">
+          <input type="range" id="sMinProfit" min="0" max="400" step="10" value="100">
+          <div class="sval" id="vMinProfit">€100</div>
+        </div>
+      </div>
+
+      <div class="sfield">
+        <label>Максимальна ціна</label>
+        <div class="srow">
+          <input type="range" id="sMaxPrice" min="300" max="1000" step="50" value="1000">
+          <div class="sval" id="vMaxPrice">€1000</div>
+        </div>
+      </div>
+
+      <div class="sfield">
+        <label>Мінімальний RAM</label>
+        <div class="srow">
+          <input type="range" id="sMinRam" min="0" max="32" step="8" value="16">
+          <div class="sval" id="vMinRam">16GB</div>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">0 = не перевіряти RAM</div>
+      </div>
+
+      <hr class="sdivider"/>
+
+      <div class="sfield">
+        <label>GPU</label>
+        <div class="grow">
+          <button class="gbtn on" data-gpu="RTX 4060">RTX 4060</button>
+          <button class="gbtn on" data-gpu="RTX 4050">RTX 4050</button>
+        </div>
+      </div>
+
+      <button class="savebtn" id="saveBtn">Зберегти</button>
+      <div class="smsg" id="saveMsg"></div>
+
     </div>
   </div>
 </div>
@@ -165,15 +235,17 @@ if(tg){tg.expand();tg.setHeaderColor('#111318');tg.setBackgroundColor('#0a0b0e')
 const API = window.location.origin;
 let deals=[], watches=[], filters={gpu:'',profit:0}, sortBy='score', loading=false;
 
+// ── Tabs ─────────────────────────────────────────────────
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
-  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
-  document.querySelectorAll('.page').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.tab,.page').forEach(x=>x.classList.remove('on'));
   t.classList.add('on');
   document.getElementById('tab-'+t.dataset.tab).classList.add('on');
   if(t.dataset.tab==='activity') fetchActivity();
+  if(t.dataset.tab==='settings') loadSettings();
   if(t.dataset.tab==='watch') renderWatches();
 }));
 
+// ── Fetch deals ──────────────────────────────────────────
 async function fetchDeals(){
   if(loading) return;
   loading=true;
@@ -181,39 +253,34 @@ async function fetchDeals(){
   try{
     const p=new URLSearchParams({sort_by:sortBy,min_profit:filters.profit||0,limit:100});
     if(filters.gpu) p.set('gpu',filters.gpu);
-
-    const [dealsRes, watchRes] = await Promise.all([
+    const [dr,wr]=await Promise.all([
       fetch(`${API}/deals?${p}`).then(r=>r.json()),
-      fetch(`${API}/deals?${p}&include_watch=true&all=false`).then(r=>r.json()),
+      fetch(`${API}/deals?${p}&include_watch=true`).then(r=>r.json()),
     ]);
-
-    deals   = (dealsRes.deals||[]).filter(d=>d.is_deal);
-    watches = (watchRes.deals||[]).filter(d=>d.is_watch && !d.is_deal);
-
-    document.getElementById('dealsLabel').textContent  = `${deals.length} угод`;
-    document.getElementById('watchLabel').textContent  = `${watches.length} watch`;
+    deals   = (dr.deals||[]).filter(d=>d.is_deal);
+    watches = (wr.deals||[]).filter(d=>d.is_watch&&!d.is_deal);
+    document.getElementById('dealsLabel').textContent=`${deals.length} deals`;
+    document.getElementById('watchLabel').textContent=`${watches.length} watch`;
     renderDeals();
     renderWatches();
-  } catch(e){
-    showErr('dealsList');
-  } finally{
-    loading=false;
-    document.getElementById('fabBtn').classList.remove('spin');
-  }
+  }catch(e){ showErr('dealsList'); }
+  finally{ loading=false; document.getElementById('fabBtn').classList.remove('spin'); }
 }
 
+// ── Activity ─────────────────────────────────────────────
 async function fetchActivity(){
   try{
-    const data=await fetch(`${API}/activity`).then(r=>r.json());
-    renderPrices(data.market_prices||{});
-    renderLog(data.scrape_log||[]);
-  }catch(e){showErr('logList')}
+    const d=await fetch(`${API}/activity`).then(r=>r.json());
+    renderPrices(d.market_prices||{});
+    renderLog(d.scrape_log||[]);
+  }catch(e){ showErr('logList'); }
 }
 
+// ── Render cards ─────────────────────────────────────────
 function renderDeals(){
   const el=document.getElementById('dealsList');
   if(!deals.length){
-    el.innerHTML=`<div class="state-msg"><div class="ico">🔍</div>Поки немає угод.<br>Система сканує кожні 45 сек.</div>`;
+    el.innerHTML=`<div class="state-msg"><div class="ico">🔍</div>Немає угод.<br>Сканування кожні 90 сек.</div>`;
     return;
   }
   el.innerHTML=deals.map((d,i)=>cardHTML(d,i,false)).join('');
@@ -222,59 +289,74 @@ function renderDeals(){
 function renderWatches(){
   const el=document.getElementById('watchList');
   if(!watches.length){
-    el.innerHTML=`<div class="state-msg"><div class="ico">👀</div>Поки немає оголошень для спостереження.</div>`;
+    el.innerHTML=`<div class="state-msg"><div class="ico">👁</div>Немає watch оголошень.</div>`;
     return;
   }
   el.innerHTML=watches.map((d,i)=>cardHTML(d,i,true)).join('');
 }
 
+function fmtListed(raw){
+  if(!raw) return '';
+  try{
+    let dt;
+    if(/^\d+$/.test(raw)) dt=new Date(parseInt(raw));
+    else dt=new Date(raw);
+    const now=new Date();
+    const diffH=Math.floor((now-dt)/3600000);
+    if(diffH<1) return 'Щойно';
+    if(diffH<24) return `${diffH}г тому`;
+    const diffD=Math.floor(diffH/24);
+    if(diffD<7) return `${diffD}д тому`;
+    return dt.toLocaleDateString('uk',{day:'numeric',month:'short'});
+  }catch(e){ return ''; }
+}
+
 function cardHTML(d,i,isWatch){
   const rc=d.risk==='low'?'rlow':d.risk==='medium'?'rmed':'rhigh';
-  const ri={low:'🟢',medium:'🟡',high:'🔴'}[d.risk]||'⚪';
-  const li={high:'💧💧💧',medium:'💧💧',low:'💧'}[d.liquidity]||'💧';
   const sc=Math.max(0,Math.min(100,d.deal_score||0));
-  const discPct=Math.round(d.discount_percent||0);
+  const disc=Math.round(d.discount_percent||0);
+  const listed=fmtListed(d.listed_date);
   return `
-  <div class="card${isWatch?' watch-card':sc>=60?' hot':''}" style="animation-delay:${Math.min(i*35,280)}ms">
+  <div class="card${isWatch?' wcard':sc>=60?' hot':''}" style="animation-delay:${Math.min(i*30,250)}ms">
     <div class="ch">
       <div class="ctitle">${esc(d.title)}</div>
-      <div style="display:flex;gap:3px;flex-shrink:0">
-        ${isWatch?'<div class="watch-badge">👀 WATCH</div>':''}
+      <div class="badges">
+        ${isWatch?'<div class="wbadge">WATCH</div>':''}
         <div class="gbadge">${esc(d.gpu)}</div>
       </div>
     </div>
     <div class="cb">
-      <div class="scorebar">
-        <div class="${isWatch?'scorefill watchfill':'scorefill'}" style="width:${isWatch?discPct*2:sc}%"></div>
-      </div>
+      <div class="sbar"><div class="${isWatch?'sfill wfill':'sfill'}" style="width:${isWatch?Math.min(disc*2,100):sc}%"></div></div>
       <div class="prow">
         <div class="pask">€${Math.round(d.price)}</div>
         <div class="pmkt">€${Math.round(d.market_price)}</div>
-        <div class="pbadge${isWatch?' watch':''}">
-          ${isWatch?`-${discPct}%`:` +€${Math.round(d.profit)} (${Math.round(d.profit_percent)}%)`}
+        <div class="pbadge${isWatch?' w':''}">
+          ${isWatch?`−${disc}%`:`+€${Math.round(d.profit)} (${Math.round(d.profit_percent)}%)`}
         </div>
       </div>
       <div class="tags">
-        <span class="tag ${rc}">${ri} ${cap(d.risk)}</span>
-        <span class="tag">${li} ${cap(d.liquidity)}</span>
-        ${d.ram?`<span class="tag">💾 ${d.ram}GB</span>`:''}
+        <span class="tag ${rc}">${{low:'Low',medium:'Med',high:'High'}[d.risk]||d.risk}</span>
+        <span class="tag">${{high:'High liq',medium:'Med liq',low:'Low liq'}[d.liquidity]||d.liquidity}</span>
+        ${d.ram?`<span class="tag">${d.ram}GB RAM</span>`:''}
+        ${listed?`<span class="tag listed">${listed}</span>`:''}
         <span class="tag">📍 ${esc(d.location||'NL')}</span>
-        ${!isWatch?`<span class="tag">⭐ ${sc}/100</span>`:`<span class="tag">📉 -${discPct}%</span>`}
+        ${!isWatch?`<span class="tag">${sc}/100</span>`:''}
       </div>
-      <a class="btn" href="${esc(d.url)}" target="_blank"
-         onclick="tg?.openLink?.('${esc(d.url)}');return false;">🔗 Відкрити оголошення</a>
+      <a class="cbtn" href="${esc(d.url)}" target="_blank"
+         onclick="tg?.openLink?.('${esc(d.url)}');return false;">Відкрити оголошення</a>
     </div>
   </div>`;
 }
 
+// ── Activity ─────────────────────────────────────────────
 function renderPrices(prices){
   document.getElementById('priceGrid').innerHTML=Object.entries(prices).map(([gpu,p])=>`
-    <div class="price-card">
-      <div class="price-gpu">${gpu}</div>
-      <div class="price-val">€${p.market}</div>
-      <div class="price-sub">Resale ~€${p.resale}</div>
-      <div class="price-badge ${p.source==='dynamic'?'dynamic':'default'}">
-        ${p.source==='dynamic'?`📊 ${p.sample_size} оголошень`:'📌 Default'}
+    <div class="pcard">
+      <div class="pgpu">${gpu}</div>
+      <div class="pval">€${p.market}</div>
+      <div class="psub">Resale ~€${p.resale}${p.p75?` · p75=€${p.p75}`:''}</div>
+      <div class="pbdg ${p.source==='dynamic'?'dyn':'def'}">
+        ${p.source==='dynamic'?`${p.sample_size} оголошень`:'Default'}
       </div>
     </div>`).join('');
 }
@@ -288,28 +370,78 @@ function renderLog(log){
   el.innerHTML=log.map(r=>{
     const t=new Date(r.scraped_at+'Z');
     const time=t.toLocaleTimeString('uk',{hour:'2-digit',minute:'2-digit'});
-    const hasDeal=r.deals_found>0;
-    const hasWatch=(r.watch_found||0)>0;
-    const dotClass=hasDeal?'dot-deal':hasWatch?'dot-watch':'dot-idle';
-    return `<div class="log-row">
-      <div class="log-dot ${dotClass}"></div>
-      <div class="log-time">${time}</div>
-      <div class="log-body">
-        <span class="log-count">${r.total_scraped} скрап</span>
-        ${r.new_found?`<span class="log-count log-new"> · +${r.new_found} нових</span>`:''}
-        ${hasDeal?`<span class="log-count log-deal"> · 🔥 ${r.deals_found} deals</span>`:''}
-        ${hasWatch?`<span class="log-count log-watch"> · 👀 ${r.watch_found} watch</span>`:''}
+    const hasDeal=r.deals_found>0, hasWatch=(r.watch_found||0)>0;
+    return `<div class="lrow">
+      <div class="dot ${hasDeal?'ddeal':hasWatch?'dwatch':'didle'}"></div>
+      <div class="ltime">${time}</div>
+      <div class="lbody">
+        <span class="lc">${r.total_scraped} скрап</span>
+        ${r.new_found?`<span class="lc ln"> +${r.new_found} нових</span>`:''}
+        ${hasDeal?`<span class="lc ld"> ${r.deals_found} deal</span>`:''}
+        ${hasWatch?`<span class="lc lw2"> ${r.watch_found} watch</span>`:''}
       </div>
     </div>`;
   }).join('');
 }
 
-function showErr(id){
-  document.getElementById(id).innerHTML=`<div class="state-msg"><div class="ico">⚠️</div>Помилка завантаження</div>`;
-}
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
-function cap(s){return s?s[0].toUpperCase()+s.slice(1):''}
+// ── Settings ──────────────────────────────────────────────
+const sliders=[
+  {id:'sMinDisc',  vid:'vMinDisc',  fmt:v=>v+'%'},
+  {id:'sWatchDisc',vid:'vWatchDisc',fmt:v=>v+'%'},
+  {id:'sMinProfit',vid:'vMinProfit',fmt:v=>'€'+v},
+  {id:'sMaxPrice', vid:'vMaxPrice', fmt:v=>'€'+v},
+  {id:'sMinRam',   vid:'vMinRam',   fmt:v=>v=='0'?'Будь-який':v+'GB'},
+];
 
+sliders.forEach(({id,vid,fmt})=>{
+  const el=document.getElementById(id);
+  el.addEventListener('input',()=>document.getElementById(vid).textContent=fmt(el.value));
+});
+
+document.querySelectorAll('.gbtn').forEach(b=>b.addEventListener('click',()=>b.classList.toggle('on')));
+
+async function loadSettings(){
+  try{
+    const s=await fetch(`${API}/settings`).then(r=>r.json());
+    document.getElementById('sMinDisc').value   = s.min_discount||15;
+    document.getElementById('sWatchDisc').value = s.watch_discount||10;
+    document.getElementById('sMinProfit').value = s.min_profit||100;
+    document.getElementById('sMaxPrice').value  = s.max_price||1000;
+    document.getElementById('sMinRam').value    = s.min_ram||16;
+    sliders.forEach(({id,vid,fmt})=>
+      document.getElementById(vid).textContent=fmt(document.getElementById(id).value)
+    );
+    const gpus=s.gpus||['RTX 4050','RTX 4060'];
+    document.querySelectorAll('.gbtn').forEach(b=>b.classList.toggle('on',gpus.includes(b.dataset.gpu)));
+  }catch(e){ console.error(e); }
+}
+
+document.getElementById('saveBtn').addEventListener('click', async ()=>{
+  const gpus=[...document.querySelectorAll('.gbtn.on')].map(b=>b.dataset.gpu);
+  const body={
+    min_discount:   parseFloat(document.getElementById('sMinDisc').value),
+    watch_discount: parseFloat(document.getElementById('sWatchDisc').value),
+    min_profit:     parseFloat(document.getElementById('sMinProfit').value),
+    max_price:      parseFloat(document.getElementById('sMaxPrice').value),
+    min_ram:        parseInt(document.getElementById('sMinRam').value),
+    gpus: gpus.length?gpus:['RTX 4050','RTX 4060'],
+  };
+  try{
+    await fetch(`${API}/settings`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    const msg=document.getElementById('saveMsg');
+    msg.textContent='Збережено';
+    setTimeout(()=>msg.textContent='',2500);
+    fetchDeals();
+  }catch(e){
+    document.getElementById('saveMsg').textContent='Помилка';
+  }
+});
+
+// ── Filters ───────────────────────────────────────────────
 document.getElementById('filterChips').addEventListener('click',e=>{
   const b=e.target.closest('.chip');
   if(!b) return;
@@ -332,6 +464,11 @@ document.querySelector('.sortbar').addEventListener('click',e=>{
 });
 
 document.getElementById('fabBtn').addEventListener('click',()=>{fetchDeals();fetchActivity();});
+
+function showErr(id){
+  document.getElementById(id).innerHTML=`<div class="state-msg"><div class="ico">⚠</div>Помилка завантаження</div>`;
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 
 setInterval(fetchDeals, 30_000);
 setInterval(fetchActivity, 60_000);
