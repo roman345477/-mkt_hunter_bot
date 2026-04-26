@@ -1,5 +1,5 @@
 """
-Deal Engine — dynamic market prices using 75th percentile.
+Deal Engine — dynamic p75 pricing, configurable filters.
 """
 
 import logging
@@ -27,28 +27,29 @@ MEDIUM_LIQUIDITY_BRANDS = [
     "samsung", "razer", "lg", "huawei",
 ]
 
+# Configurable via /settings endpoint
 MIN_DISCOUNT_PCT   = 15
 WATCH_DISCOUNT_PCT = 10
 MIN_PROFIT_EUR     = 100
 MAX_PRICE_EUR      = 1000
+MIN_RAM            = 16
 MIN_DESC_LEN       = 30
+ALLOWED_GPUS       = ["RTX 4050", "RTX 4060"]
 
 
 def percentile(data: list, p: float) -> float:
-    if not data:
-        return 0
+    if not data: return 0
     s = sorted(data)
     k = (len(s) - 1) * p / 100
     f = int(k)
     c = f + 1
-    if c >= len(s):
-        return s[f]
+    if c >= len(s): return s[f]
     return s[f] + (k - f) * (s[c] - s[f])
 
 
 def update_market_prices(all_listings: list):
     now = datetime.utcnow()
-    for gpu in ["RTX 4050", "RTX 4060"]:
+    for gpu in ALLOWED_GPUS:
         cached = _price_cache.get(gpu)
         if cached and (now - cached["updated"]) < timedelta(hours=_CACHE_TTL_HOURS):
             continue
@@ -108,6 +109,7 @@ class DealEvaluation:
     seller_name: str
     description: str
     scraped_at: str
+    listed_date: str
     market_price: float = 0.0
     resale_price: float = 0.0
     profit: float = 0.0
@@ -133,9 +135,9 @@ def evaluate(listing: dict) -> Optional[DealEvaluation]:
 
     if price <= 0 or price > MAX_PRICE_EUR:
         return None
-    if gpu not in MARKET_PRICES_DEFAULT:
+    if gpu not in ALLOWED_GPUS:
         return None
-    if ram and ram < 16:
+    if ram and MIN_RAM and ram < MIN_RAM:
         return None
     if condition not in ("new", "like_new"):
         return None
@@ -164,6 +166,7 @@ def evaluate(listing: dict) -> Optional[DealEvaluation]:
         url=listing.get("url", ""), image_url=listing.get("image_url", ""),
         seller_name=listing.get("seller_name", ""), description=desc,
         scraped_at=listing.get("scraped_at", ""),
+        listed_date=listing.get("listed_date", ""),
         market_price=market_price, resale_price=resale_price,
         profit=round(profit, 2), profit_percent=profit_percent,
         discount_percent=discount_pct, risk=risk, liquidity=liquidity,
