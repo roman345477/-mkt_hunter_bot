@@ -1,5 +1,5 @@
 """
-Database — SQLite with dedup, scrape log, auto-cleanup of old records.
+Database — SQLite with dedup, scrape log, listed_date, auto-cleanup.
 """
 
 import sqlite3
@@ -35,6 +35,7 @@ def init_db():
             seller_name      TEXT,
             description      TEXT,
             scraped_at       TEXT,
+            listed_date      TEXT,
             market_price     REAL,
             resale_price     REAL,
             profit           REAL,
@@ -61,21 +62,26 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_score    ON deals(deal_score DESC);
         CREATE INDEX IF NOT EXISTS idx_created  ON deals(created_at DESC);
         CREATE INDEX IF NOT EXISTS idx_notified ON deals(notified);
+        CREATE INDEX IF NOT EXISTS idx_listed   ON deals(listed_date DESC);
     """)
+    # Add listed_date column if upgrading from old schema
+    try:
+        conn.execute("ALTER TABLE deals ADD COLUMN listed_date TEXT")
+        conn.commit()
+    except Exception:
+        pass
     conn.commit()
     conn.close()
     logger.info("DB initialized")
 
 
 def cleanup_old_records():
-    """Delete deals older than 30 days."""
     conn = get_conn()
-    deleted = conn.execute("""
-        DELETE FROM deals
-        WHERE created_at < datetime('now', '-30 days')
-    """).rowcount
+    deleted = conn.execute(
+        "DELETE FROM deals WHERE created_at < datetime('now', '-30 days')"
+    ).rowcount
     if deleted:
-        logger.info(f"🧹 Cleaned up {deleted} old records")
+        logger.info(f"Cleaned up {deleted} old records")
     conn.commit()
     conn.close()
 
@@ -109,12 +115,12 @@ def upsert_deal(d: dict) -> bool:
         conn.execute("""
             INSERT INTO deals (
                 item_id, title, price, gpu, ram, condition, location,
-                url, image_url, seller_name, description, scraped_at,
+                url, image_url, seller_name, description, scraped_at, listed_date,
                 market_price, resale_price, profit, profit_percent,
                 discount_percent, risk, liquidity, is_deal, is_watch, deal_score
             ) VALUES (
                 :item_id, :title, :price, :gpu, :ram, :condition, :location,
-                :url, :image_url, :seller_name, :description, :scraped_at,
+                :url, :image_url, :seller_name, :description, :scraped_at, :listed_date,
                 :market_price, :resale_price, :profit, :profit_percent,
                 :discount_percent, :risk, :liquidity, :is_deal, :is_watch, :deal_score
             )
@@ -162,6 +168,7 @@ def get_deals(
         "profit": "profit DESC",
         "newest": "created_at DESC",
         "price":  "price ASC",
+        "listed": "listed_date DESC",
     }.get(sort_by, "deal_score DESC")
 
     rows = conn.execute(
