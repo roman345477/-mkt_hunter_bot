@@ -1,10 +1,11 @@
 """
-Telegram bot — deal alerts + watch alerts.
+Telegram bot — clean alerts, no emoji overload.
 """
 
 import os
 import logging
 import httpx
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -14,37 +15,83 @@ BASE_URL  = os.getenv("BASE_URL", "http://localhost:8000")
 TG_API    = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
 
-def risk_emoji(r): return {"low":"🟢","medium":"🟡","high":"🔴"}.get(r,"⚪")
-def liq_emoji(l):  return {"high":"💧💧💧","medium":"💧💧","low":"💧"}.get(l,"💧")
+def fmt_listed(listed_date: str) -> str:
+    """Format listed_date to readable string."""
+    if not listed_date:
+        return ""
+    try:
+        # Marktplaats returns ISO or epoch
+        if listed_date.isdigit():
+            dt = datetime.utcfromtimestamp(int(listed_date) / 1000)
+        else:
+            dt = datetime.fromisoformat(listed_date.replace("Z", ""))
+        return dt.strftime("%-d %b %H:%M")
+    except Exception:
+        return ""
+
+
+def risk_label(r):
+    return {"low": "Low", "medium": "Medium", "high": "High"}.get(r, r)
+
+
+def liq_label(l):
+    return {"high": "High", "medium": "Medium", "low": "Low"}.get(l, l)
 
 
 def format_deal(deal: dict) -> str:
+    title      = deal.get("title", "")[:55]
+    price      = deal.get("price", 0)
+    market     = deal.get("market_price", 0)
+    profit     = deal.get("profit", 0)
+    pct        = deal.get("profit_percent", 0)
+    disc       = deal.get("discount_percent", 0)
+    risk       = deal.get("risk", "")
+    liq        = deal.get("liquidity", "")
+    loc        = deal.get("location", "NL")
+    score      = deal.get("deal_score", 0)
+    gpu        = deal.get("gpu", "")
+    ram        = deal.get("ram", 0)
+    ram_str    = f" · {ram}GB RAM" if ram else ""
+    listed     = fmt_listed(deal.get("listed_date", ""))
+    listed_str = f" · Опубл. {listed}" if listed else ""
+
     return (
-        f"🔥 <b>DEAL</b> — {deal.get('title','')[:50]}\n\n"
-        f"💶 <b>€{deal.get('price',0):.0f}</b>  <i>ринок ~€{deal.get('market_price',0):.0f}</i>\n"
-        f"💰 Profit: <b>€{deal.get('profit',0):.0f} ({deal.get('profit_percent',0):.0f}%)</b>\n"
-        f"⚠️ {risk_emoji(deal.get('risk',''))} {deal.get('risk','').capitalize()}  "
-        f"{liq_emoji(deal.get('liquidity',''))} {deal.get('liquidity','').capitalize()}\n"
-        f"📍 {deal.get('location','NL')}  ⭐ {deal.get('deal_score',0)}/100"
+        f"<b>DEAL — {title}</b>\n\n"
+        f"<b>€{price:.0f}</b>  vs ринок €{market:.0f}  (−{disc:.0f}%)\n"
+        f"Profit: <b>€{profit:.0f} ({pct:.0f}%)</b>\n\n"
+        f"{gpu}{ram_str}\n"
+        f"Risk: {risk_label(risk)}  ·  Liquidity: {liq_label(liq)}\n"
+        f"📍 {loc}  ·  Score: {score}/100{listed_str}"
     )
 
 
 def format_watch(deal: dict) -> str:
+    title      = deal.get("title", "")[:55]
+    price      = deal.get("price", 0)
+    market     = deal.get("market_price", 0)
+    profit     = deal.get("profit", 0)
+    disc       = deal.get("discount_percent", 0)
+    risk       = deal.get("risk", "")
+    liq        = deal.get("liquidity", "")
+    loc        = deal.get("location", "NL")
+    gpu        = deal.get("gpu", "")
+    listed     = fmt_listed(deal.get("listed_date", ""))
+    listed_str = f" · Опубл. {listed}" if listed else ""
+
     return (
-        f"👀 <b>WATCH</b> — {deal.get('title','')[:50]}\n\n"
-        f"💶 <b>€{deal.get('price',0):.0f}</b>  <i>ринок ~€{deal.get('market_price',0):.0f}</i>\n"
-        f"📉 Знижка: <b>{deal.get('discount_percent',0):.0f}%</b>  "
-        f"Profit: ~€{deal.get('profit',0):.0f}\n"
-        f"⚠️ {risk_emoji(deal.get('risk',''))} {deal.get('risk','').capitalize()}  "
-        f"{liq_emoji(deal.get('liquidity',''))} {deal.get('liquidity','').capitalize()}\n"
-        f"📍 {deal.get('location','NL')}"
+        f"<b>WATCH — {title}</b>\n\n"
+        f"<b>€{price:.0f}</b>  vs ринок €{market:.0f}  (−{disc:.0f}%)\n"
+        f"Profit: ~€{profit:.0f}\n\n"
+        f"{gpu}\n"
+        f"Risk: {risk_label(risk)}  ·  Liquidity: {liq_label(liq)}\n"
+        f"📍 {loc}{listed_str}"
     )
 
 
 def build_keyboard(deal: dict) -> dict:
     return {"inline_keyboard": [[
-        {"text": "🔗 Оголошення", "url": deal.get("url", "")},
-        {"text": "📱 Mini App", "web_app": {"url": f"{BASE_URL}/app"}},
+        {"text": "Відкрити оголошення", "url": deal.get("url", "")},
+        {"text": "Mini App", "web_app": {"url": f"{BASE_URL}/app"}},
     ]]}
 
 
@@ -73,10 +120,8 @@ async def send_deal_alert(deal: dict) -> bool:
     if not BOT_TOKEN or not CHAT_ID:
         return False
     return await _send({
-        "chat_id": CHAT_ID,
-        "text": format_deal(deal),
-        "parse_mode": "HTML",
-        "reply_markup": build_keyboard(deal),
+        "chat_id": CHAT_ID, "text": format_deal(deal),
+        "parse_mode": "HTML", "reply_markup": build_keyboard(deal),
     }, deal.get("image_url", ""))
 
 
@@ -84,10 +129,8 @@ async def send_watch_alert(deal: dict) -> bool:
     if not BOT_TOKEN or not CHAT_ID:
         return False
     return await _send({
-        "chat_id": CHAT_ID,
-        "text": format_watch(deal),
-        "parse_mode": "HTML",
-        "reply_markup": build_keyboard(deal),
+        "chat_id": CHAT_ID, "text": format_watch(deal),
+        "parse_mode": "HTML", "reply_markup": build_keyboard(deal),
     }, deal.get("image_url", ""))
 
 
@@ -97,7 +140,7 @@ async def notify_startup():
     try:
         async with httpx.AsyncClient(timeout=5) as c:
             await c.post(f"{TG_API}/sendMessage", json={
-                "chat_id": CHAT_ID, "text": "✅ Hunter online", "parse_mode": "HTML",
+                "chat_id": CHAT_ID, "text": "Hunter online", "parse_mode": "HTML",
             })
     except Exception:
         pass
