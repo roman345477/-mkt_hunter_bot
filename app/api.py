@@ -1,5 +1,5 @@
 """
-FastAPI — deals API + watch + Mini App + activity log.
+FastAPI — deals, settings, activity, Mini App.
 """
 
 import logging
@@ -9,9 +9,11 @@ from typing import Optional
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 from database import get_stats, get_deals, init_db, get_scrape_stats
 from deal_engine import get_price_cache_info
+import deal_engine as de
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -23,6 +25,24 @@ FRONTEND_DIR = Path("/app/frontend")
 if not FRONTEND_DIR.exists():
     FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 
+_settings = {
+    "min_discount":   de.MIN_DISCOUNT_PCT,
+    "watch_discount": de.WATCH_DISCOUNT_PCT,
+    "min_profit":     de.MIN_PROFIT_EUR,
+    "max_price":      de.MAX_PRICE_EUR,
+    "min_ram":        de.MIN_RAM,
+    "gpus":           list(de.ALLOWED_GPUS),
+}
+
+
+class Settings(BaseModel):
+    min_discount:   float = 15
+    watch_discount: float = 10
+    min_profit:     float = 100
+    max_price:      float = 1000
+    min_ram:        int   = 16
+    gpus:           list  = ["RTX 4050", "RTX 4060"]
+
 
 @app.on_event("startup")
 async def startup():
@@ -33,6 +53,24 @@ async def startup():
 @app.get("/health")
 async def health():
     return {"status": "ok", "stats": get_stats()}
+
+
+@app.get("/settings")
+async def get_settings():
+    return _settings
+
+
+@app.post("/settings")
+async def update_settings(s: Settings):
+    _settings.update(s.dict())
+    de.MIN_DISCOUNT_PCT   = s.min_discount
+    de.WATCH_DISCOUNT_PCT = s.watch_discount
+    de.MIN_PROFIT_EUR     = s.min_profit
+    de.MAX_PRICE_EUR      = s.max_price
+    de.MIN_RAM            = s.min_ram
+    de.ALLOWED_GPUS       = s.gpus if s.gpus else ["RTX 4050", "RTX 4060"]
+    logger.info(f"Settings updated: {_settings}")
+    return {"status": "ok", "settings": _settings}
 
 
 @app.get("/deals")
@@ -63,7 +101,7 @@ async def latest_endpoint(limit: int = Query(30, le=100)):
 @app.get("/activity")
 async def activity():
     return {
-        "scrape_log": get_scrape_stats(),
+        "scrape_log":    get_scrape_stats(),
         "market_prices": get_price_cache_info(),
     }
 
@@ -83,19 +121,7 @@ async def mini_app():
     if index.exists():
         return FileResponse(str(index))
     return JSONResponse({"error": "Frontend not found"}, status_code=404)
-@app.get("/debug")
-async def debug():
-    """Show raw scraper data — temporary debug endpoint."""
-    from scraper import scrape_all
-    import asyncio
-    listings = await scrape_all()
-    return {
-        "count": len(listings),
-        "sample": listings[:5],  # перші 5 оголошень
-        "conditions": list(set(l.get("condition","") for l in listings)),
-        "gpus": list(set(l.get("gpu","") for l in listings)),
-        "prices": sorted([l.get("price",0) for l in listings])[:10],
-    }
+
 
 @app.get("/")
 async def root():
