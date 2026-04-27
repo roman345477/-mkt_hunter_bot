@@ -1,5 +1,5 @@
 """
-Database — SQLite with dedup, scrape log, listed_date, auto-cleanup.
+Database — SQLite with all new fields: storage, screen, cpu, listed_date.
 """
 
 import sqlite3
@@ -27,7 +27,10 @@ def init_db():
             title            TEXT NOT NULL,
             price            REAL NOT NULL,
             gpu              TEXT NOT NULL,
-            ram              INTEGER,
+            ram              INTEGER DEFAULT 0,
+            storage          INTEGER DEFAULT 0,
+            screen           REAL DEFAULT 0,
+            cpu              TEXT DEFAULT '',
             condition        TEXT,
             location         TEXT,
             url              TEXT,
@@ -62,14 +65,19 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_score    ON deals(deal_score DESC);
         CREATE INDEX IF NOT EXISTS idx_created  ON deals(created_at DESC);
         CREATE INDEX IF NOT EXISTS idx_notified ON deals(notified);
-        CREATE INDEX IF NOT EXISTS idx_listed   ON deals(listed_date DESC);
+        CREATE INDEX IF NOT EXISTS idx_gpu      ON deals(gpu);
     """)
-    # Add listed_date column if upgrading from old schema
-    try:
-        conn.execute("ALTER TABLE deals ADD COLUMN listed_date TEXT")
-        conn.commit()
-    except Exception:
-        pass
+    # Migrate old schema — add missing columns
+    for col, defval in [
+        ("storage", "INTEGER DEFAULT 0"),
+        ("screen",  "REAL DEFAULT 0"),
+        ("cpu",     "TEXT DEFAULT ''"),
+        ("listed_date", "TEXT"),
+    ]:
+        try:
+            conn.execute(f"ALTER TABLE deals ADD COLUMN {col} {defval}")
+        except Exception:
+            pass
     conn.commit()
     conn.close()
     logger.info("DB initialized")
@@ -77,11 +85,8 @@ def init_db():
 
 def cleanup_old_records():
     conn = get_conn()
-    deleted = conn.execute(
-        "DELETE FROM deals WHERE created_at < datetime('now', '-30 days')"
-    ).rowcount
-    if deleted:
-        logger.info(f"Cleaned up {deleted} old records")
+    n = conn.execute("DELETE FROM deals WHERE created_at < datetime('now', '-30 days')").rowcount
+    if n: logger.info(f"Cleaned {n} old records")
     conn.commit()
     conn.close()
 
@@ -99,10 +104,9 @@ def log_scrape(total_scraped: int, new_found: int, deals_found: int, watch_found
 
 def get_scrape_stats() -> list:
     conn = get_conn()
-    rows = conn.execute("""
-        SELECT scraped_at, total_scraped, new_found, deals_found, watch_found
-        FROM scrape_log ORDER BY id DESC LIMIT 20
-    """).fetchall()
+    rows = conn.execute(
+        "SELECT scraped_at,total_scraped,new_found,deals_found,watch_found FROM scrape_log ORDER BY id DESC LIMIT 20"
+    ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
@@ -110,19 +114,19 @@ def get_scrape_stats() -> list:
 def upsert_deal(d: dict) -> bool:
     conn = get_conn()
     try:
-        if conn.execute("SELECT item_id FROM deals WHERE item_id = ?", (d["item_id"],)).fetchone():
+        if conn.execute("SELECT item_id FROM deals WHERE item_id=?", (d["item_id"],)).fetchone():
             return False
         conn.execute("""
             INSERT INTO deals (
-                item_id, title, price, gpu, ram, condition, location,
-                url, image_url, seller_name, description, scraped_at, listed_date,
-                market_price, resale_price, profit, profit_percent,
-                discount_percent, risk, liquidity, is_deal, is_watch, deal_score
+                item_id,title,price,gpu,ram,storage,screen,cpu,condition,location,
+                url,image_url,seller_name,description,scraped_at,listed_date,
+                market_price,resale_price,profit,profit_percent,discount_percent,
+                risk,liquidity,is_deal,is_watch,deal_score
             ) VALUES (
-                :item_id, :title, :price, :gpu, :ram, :condition, :location,
-                :url, :image_url, :seller_name, :description, :scraped_at, :listed_date,
-                :market_price, :resale_price, :profit, :profit_percent,
-                :discount_percent, :risk, :liquidity, :is_deal, :is_watch, :deal_score
+                :item_id,:title,:price,:gpu,:ram,:storage,:screen,:cpu,:condition,:location,
+                :url,:image_url,:seller_name,:description,:scraped_at,:listed_date,
+                :market_price,:resale_price,:profit,:profit_percent,:discount_percent,
+                :risk,:liquidity,:is_deal,:is_watch,:deal_score
             )
         """, d)
         conn.commit()
@@ -133,7 +137,7 @@ def upsert_deal(d: dict) -> bool:
 
 def mark_notified(item_id: str):
     conn = get_conn()
-    conn.execute("UPDATE deals SET notified = 1 WHERE item_id = ?", (item_id,))
+    conn.execute("UPDATE deals SET notified=1 WHERE item_id=?", (item_id,))
     conn.commit()
     conn.close()
 
@@ -145,24 +149,21 @@ def get_deals(
     offset: int = 0,
     min_profit: float = 0,
     gpu: Optional[str] = None,
-    max_price: float = 9999,
+    max_price: float = 999999,
     sort_by: str = "score",
 ) -> list[dict]:
     conn = get_conn()
     filters, params = ["1=1"], []
-
     if only_deals and not include_watch:
-        filters.append("is_deal = 1")
+        filters.append("is_deal=1")
     elif include_watch:
-        filters.append("(is_deal = 1 OR is_watch = 1)")
-
+        filters.append("(is_deal=1 OR is_watch=1)")
     if min_profit > 0:
-        filters.append("profit >= ?"); params.append(min_profit)
+        filters.append("profit>=?"); params.append(min_profit)
     if gpu:
-        filters.append("gpu = ?"); params.append(gpu)
-    if max_price < 9999:
-        filters.append("price <= ?"); params.append(max_price)
-
+        filters.append("gpu=?"); params.append(gpu)
+    if max_price < 999999:
+        filters.append("price<=?"); params.append(max_price)
     order = {
         "score":  "deal_score DESC, discount_percent DESC",
         "profit": "profit DESC",
@@ -170,7 +171,6 @@ def get_deals(
         "price":  "price ASC",
         "listed": "listed_date DESC",
     }.get(sort_by, "deal_score DESC")
-
     rows = conn.execute(
         f"SELECT * FROM deals WHERE {' AND '.join(filters)} ORDER BY {order} LIMIT ? OFFSET ?",
         params + [limit, offset]
@@ -181,18 +181,16 @@ def get_deals(
 
 def get_pending_notifications() -> list[dict]:
     conn = get_conn()
-    rows = conn.execute("""
-        SELECT * FROM deals
-        WHERE (is_deal = 1 OR is_watch = 1) AND notified = 0
-        ORDER BY is_deal DESC, deal_score DESC
-    """).fetchall()
+    rows = conn.execute(
+        "SELECT * FROM deals WHERE (is_deal=1 OR is_watch=1) AND notified=0 ORDER BY is_deal DESC, deal_score DESC"
+    ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
 
 def get_stats() -> dict:
     conn = get_conn()
-    stats = conn.execute("""
+    s = conn.execute("""
         SELECT COUNT(*) as total,
             SUM(CASE WHEN is_deal=1 THEN 1 ELSE 0 END) as deals,
             SUM(CASE WHEN is_watch=1 THEN 1 ELSE 0 END) as watches,
@@ -201,4 +199,4 @@ def get_stats() -> dict:
         FROM deals
     """).fetchone()
     conn.close()
-    return dict(stats) if stats else {}
+    return dict(s) if s else {}
