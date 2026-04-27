@@ -7,104 +7,125 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
   <style>
-    :root{--bg:#0a0b0e;--surface:#111318;--card:#161923;--border:#1e2535;--accent:#00e5ff;--green:#00ff88;--yellow:#ffcc00;--orange:#ff8c00;--red:#ff4466;--txt:#e8eaf0;--muted:#5a6070}
+    :root{--bg:#0a0b0e;--surface:#111318;--card:#161923;--border:#1e2535;--accent:#00e5ff;--green:#00ff88;--yellow:#ffcc00;--orange:#ff8c00;--red:#ff4466;--txt:#e8eaf0;--muted:#5a6070;--muted2:#3a4050}
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;overflow-x:hidden}
-
-    .header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px 10px;position:sticky;top:0;z-index:100}
-    .header-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-    .logo{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;letter-spacing:.06em;color:var(--accent)}
+    /* Header */
+    .hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px 10px;position:sticky;top:0;z-index:100}
+    .hrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .logo{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--accent)}
     .logo span{color:var(--txt)}
-    .hstats{display:flex;gap:6px}
-    .pill{font-size:10px;background:rgba(0,229,255,.08);color:var(--accent);border:1px solid rgba(0,229,255,.2);border-radius:20px;padding:2px 9px}
-    .pill.w{background:rgba(255,140,0,.08);color:var(--orange);border-color:rgba(255,140,0,.2)}
+    .hstats{display:flex;gap:5px}
+    .pill{font-size:10px;padding:2px 9px;border-radius:20px;border:1px solid rgba(0,229,255,.2);background:rgba(0,229,255,.07);color:var(--accent)}
+    .pill.w{border-color:rgba(255,140,0,.2);background:rgba(255,140,0,.07);color:var(--orange)}
     .chips{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none}
     .chips::-webkit-scrollbar{display:none}
     .chip{flex-shrink:0;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all .15s}
     .chip.on{background:rgba(0,229,255,.1);border-color:var(--accent);color:var(--accent)}
-
-    .tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface)}
-    .tab{flex:1;padding:8px 4px;font-size:11px;font-weight:600;text-align:center;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+    /* Tabs */
+    .tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border)}
+    .tab{flex:1;padding:8px 2px;font-size:11px;font-weight:600;text-align:center;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
     .tab.on{color:var(--accent);border-bottom-color:var(--accent)}
-
-    .sortbar{display:flex;gap:4px;padding:8px 16px 0}
-    .sb{font-size:11px;padding:3px 8px;border-radius:5px;border:1px solid var(--border);color:var(--muted);cursor:pointer;background:transparent;transition:all .15s}
+    /* Sort */
+    .sortbar{display:flex;gap:4px;padding:8px 14px 0;overflow-x:auto;scrollbar-width:none}
+    .sortbar::-webkit-scrollbar{display:none}
+    .sb{flex-shrink:0;font-size:11px;padding:3px 8px;border-radius:5px;border:1px solid var(--border);color:var(--muted);cursor:pointer;background:transparent;white-space:nowrap}
     .sb.on{background:var(--card);color:var(--txt);border-color:var(--accent)}
-
+    /* Pages */
     .page{display:none;padding:10px 14px 80px}
     .page.on{display:block}
-
-    .card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:8px;animation:fadeUp .2s ease-out}
+    /* Cards */
+    .card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:8px;animation:fu .2s ease-out}
     .card.hot{border-color:rgba(0,255,136,.25)}
     .card.wcard{border-color:rgba(255,140,0,.2)}
-    @keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
-    .ch{padding:10px 12px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+    @keyframes fu{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+    .ch{padding:10px 12px 0;display:flex;align-items:flex-start;gap:8px}
     .ctitle{font-size:13px;font-weight:600;line-height:1.25;flex:1}
-    .badges{display:flex;gap:3px;flex-shrink:0;align-items:center}
-    .gbadge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;background:rgba(0,229,255,.1);color:var(--accent);border:1px solid rgba(0,229,255,.2);white-space:nowrap}
-    .wbadge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;background:rgba(255,140,0,.1);color:var(--orange);border:1px solid rgba(255,140,0,.2);white-space:nowrap}
+    .bdgs{display:flex;gap:3px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;max-width:120px}
+    .gbdg{font-size:9px;font-weight:700;padding:2px 5px;border-radius:3px;background:rgba(0,229,255,.1);color:var(--accent);border:1px solid rgba(0,229,255,.2);white-space:nowrap}
+    .wbdg{font-size:9px;font-weight:700;padding:2px 5px;border-radius:3px;background:rgba(255,140,0,.1);color:var(--orange);border:1px solid rgba(255,140,0,.2);white-space:nowrap}
     .cb{padding:8px 12px 10px}
-    .sbar{height:2px;background:var(--border);border-radius:2px;margin-bottom:8px;overflow:hidden}
-    .sfill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--green))}
-    .wfill{background:linear-gradient(90deg,var(--orange),var(--yellow))}
+    .sbar{height:2px;background:var(--border);border-radius:2px;margin-bottom:7px;overflow:hidden}
+    .sf{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--green))}
+    .wf{background:linear-gradient(90deg,var(--orange),var(--yellow))}
     .prow{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
     .pask{font-size:22px;font-weight:700;font-family:'Rajdhani',sans-serif}
     .pmkt{font-size:11px;color:var(--muted);text-decoration:line-through}
-    .pbadge{margin-left:auto;font-size:13px;font-weight:700;color:var(--green);font-family:'Rajdhani',sans-serif}
-    .pbadge.w{color:var(--orange)}
+    .pprofit{margin-left:auto;font-size:13px;font-weight:700;color:var(--green);font-family:'Rajdhani',sans-serif}
+    .pprofit.w{color:var(--orange)}
+    .specs{font-size:10px;color:var(--muted);margin-bottom:6px;line-height:1.6}
     .tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
-    .tag{font-size:10px;padding:2px 6px;border-radius:3px;background:rgba(255,255,255,.04);color:var(--muted);border:1px solid var(--border)}
-    .tag.rlow{color:var(--green);background:rgba(0,255,136,.06);border-color:rgba(0,255,136,.2)}
-    .tag.rmed{color:var(--yellow);background:rgba(255,204,0,.06);border-color:rgba(255,204,0,.2)}
-    .tag.rhigh{color:var(--red);background:rgba(255,68,102,.06);border-color:rgba(255,68,102,.2)}
-    .tag.listed{color:var(--accent);background:rgba(0,229,255,.06);border-color:rgba(0,229,255,.15)}
-    .cbtn{width:100%;padding:7px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.25);border-radius:6px;color:var(--accent);font-size:12px;font-weight:600;text-align:center;text-decoration:none;display:block}
-
+    .tag{font-size:10px;padding:2px 6px;border-radius:3px;background:rgba(255,255,255,.03);color:var(--muted);border:1px solid var(--border)}
+    .rlow{color:var(--green);background:rgba(0,255,136,.05);border-color:rgba(0,255,136,.2)}
+    .rmed{color:var(--yellow);background:rgba(255,204,0,.05);border-color:rgba(255,204,0,.2)}
+    .rhigh{color:var(--red);background:rgba(255,68,102,.05);border-color:rgba(255,68,102,.2)}
+    .tlisted{color:var(--accent);background:rgba(0,229,255,.05);border-color:rgba(0,229,255,.15)}
+    .abtn{width:100%;padding:7px;background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.2);border-radius:6px;color:var(--accent);font-size:12px;font-weight:600;text-align:center;text-decoration:none;display:block}
     /* Activity */
-    .sec-title{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
-    .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
-    .pcard{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
-    .pgpu{font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.06em;margin-bottom:4px}
-    .pval{font-size:18px;font-weight:700;font-family:'Rajdhani',sans-serif}
-    .psub{font-size:10px;color:var(--muted);margin-top:2px}
-    .pbdg{display:inline-block;font-size:9px;padding:1px 5px;border-radius:3px;margin-top:4px}
-    .pbdg.dyn{background:rgba(0,255,136,.1);color:var(--green);border:1px solid rgba(0,255,136,.2)}
-    .pbdg.def{background:rgba(90,96,112,.1);color:var(--muted);border:1px solid var(--border)}
-    .lrow{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--card);border:1px solid var(--border);border-radius:7px;margin-bottom:5px}
-    .ltime{font-size:10px;color:var(--muted);white-space:nowrap;min-width:42px}
-    .lbody{flex:1;font-size:11px}
-    .lc{font-size:10px;font-weight:600}
+    .stitle{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+    .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px}
+    .pcard{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:9px 11px}
+    .pgpu{font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.05em;margin-bottom:3px}
+    .pval{font-size:17px;font-weight:700;font-family:'Rajdhani',sans-serif}
+    .psub{font-size:9px;color:var(--muted);margin-top:1px}
+    .pbdg2{display:inline-block;font-size:8px;padding:1px 4px;border-radius:3px;margin-top:3px}
+    .dyn{background:rgba(0,255,136,.1);color:var(--green);border:1px solid rgba(0,255,136,.2)}
+    .sta{background:rgba(90,96,112,.1);color:var(--muted);border:1px solid var(--border)}
+    .lrow{display:flex;align-items:center;gap:7px;padding:6px 9px;background:var(--card);border:1px solid var(--border);border-radius:6px;margin-bottom:4px}
+    .ltime{font-size:10px;color:var(--muted);white-space:nowrap;min-width:38px}
+    .lbody{flex:1;font-size:10px}
+    .lc{font-weight:600}
     .ln{color:var(--accent)}.ld{color:var(--green)}.lw2{color:var(--orange)}
     .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-    .ddeal{background:var(--green)}.dwatch{background:var(--orange)}.didle{background:var(--muted)}
-
+    .dd{background:var(--green)}.dw{background:var(--orange)}.di{background:var(--muted)}
     /* Settings */
-    .sform{display:flex;flex-direction:column;gap:16px}
-    .sfield{display:flex;flex-direction:column;gap:6px}
-    .sfield label{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
-    .srow{display:flex;align-items:center;gap:10px}
-    .srow input[type=range]{flex:1;accent-color:var(--accent);height:4px;cursor:pointer}
-    .sval{font-size:13px;font-weight:700;font-family:'Rajdhani',sans-serif;min-width:56px;text-align:right;color:var(--accent)}
-    .grow{display:flex;gap:8px}
-    .gbtn{flex:1;padding:8px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
-    .gbtn.on{background:rgba(0,229,255,.1);border-color:var(--accent);color:var(--accent)}
-    .savebtn{width:100%;padding:12px;background:var(--accent);border:none;border-radius:8px;color:#000;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;letter-spacing:.04em}
-    .smsg{text-align:center;font-size:12px;color:var(--green);margin-top:8px;min-height:18px}
-    .sdivider{border:none;border-top:1px solid var(--border);margin:4px 0}
-
-    .state-msg{text-align:center;padding:50px 20px;color:var(--muted);font-size:13px}
-    .state-msg .ico{font-size:36px;margin-bottom:10px}
-    .skel{background:var(--card);border:1px solid var(--border);border-radius:10px;height:140px;margin-bottom:8px;animation:pulse 1.4s ease-in-out infinite}
+    .sf2{display:flex;flex-direction:column;gap:0}
+    .sgroup{margin-bottom:18px}
+    .sgroup-title{font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+    .sfield{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+    .sfield label{display:flex;justify-content:space-between;align-items:center}
+    .slabel{font-size:11px;font-weight:600;color:var(--txt)}
+    .shelp{font-size:10px;color:var(--muted);margin-top:2px;line-height:1.4}
+    .srow{display:flex;align-items:center;gap:8px}
+    .srow input[type=range]{flex:1;accent-color:var(--accent);cursor:pointer}
+    .sval{font-size:12px;font-weight:700;font-family:'Rajdhani',sans-serif;min-width:52px;text-align:right;color:var(--accent)}
+    /* GPU grid */
+    .ggrid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+    .ggrid.wide{grid-template-columns:1fr 1fr 1fr}
+    .gbtn2{padding:6px 4px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:10px;font-weight:600;cursor:pointer;transition:all .15s;text-align:center}
+    .gbtn2.on{background:rgba(0,229,255,.1);border-color:var(--accent);color:var(--accent)}
+    .gbtn2.g30{background:rgba(255,204,0,.05);border-color:rgba(255,204,0,.15);color:rgba(255,204,0,.6)}
+    .gbtn2.g30.on{background:rgba(255,204,0,.12);border-color:var(--yellow);color:var(--yellow)}
+    .gbtn2.g50{background:rgba(0,255,136,.05);border-color:rgba(0,255,136,.15);color:rgba(0,255,136,.6)}
+    .gbtn2.g50.on{background:rgba(0,255,136,.12);border-color:var(--green);color:var(--green)}
+    /* CPU row */
+    .cpu-row{display:flex;gap:5px;flex-wrap:wrap}
+    .cbtn{padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;transition:all .15s}
+    .cbtn.on{background:rgba(0,229,255,.1);border-color:var(--accent);color:var(--accent)}
+    /* Legend */
+    .legend{display:flex;flex-direction:column;gap:8px}
+    .litem{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;background:var(--card);border:1px solid var(--border);border-radius:7px}
+    .lbadge{flex-shrink:0;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;margin-top:1px}
+    .ldesc{font-size:11px;line-height:1.5;color:var(--muted)}
+    .ldesc b{color:var(--txt)}
+    /* Save */
+    .savebtn{width:100%;padding:12px;background:var(--accent);border:none;border-radius:8px;color:#000;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:.04em;margin-top:4px}
+    .smsg{text-align:center;font-size:11px;color:var(--green);margin-top:8px;min-height:16px}
+    /* Common */
+    .state-msg{text-align:center;padding:50px 16px;color:var(--muted);font-size:12px}
+    .state-msg .ico{font-size:32px;margin-bottom:8px}
+    .skel{background:var(--card);border:1px solid var(--border);border-radius:10px;height:130px;margin-bottom:8px;animation:pulse 1.4s ease-in-out infinite}
     @keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
-    .fab{position:fixed;bottom:20px;right:16px;width:44px;height:44px;border-radius:50%;background:var(--accent);color:#000;font-size:18px;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,229,255,.3)}
+    .fab{position:fixed;bottom:20px;right:14px;width:42px;height:42px;border-radius:50%;background:var(--accent);color:#000;font-size:17px;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 14px rgba(0,229,255,.3)}
     .fab.spin{animation:spin .8s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
+    hr.div{border:none;border-top:1px solid var(--border);margin:4px 0 14px}
   </style>
 </head>
 <body>
 
-<div class="header">
-  <div class="header-row">
+<div class="hdr">
+  <div class="hrow">
     <div class="logo">HUNTER<span>.</span></div>
     <div class="hstats">
       <div class="pill" id="dealsLabel">0 deals</div>
@@ -113,11 +134,13 @@
   </div>
   <div class="chips" id="filterChips">
     <div class="chip on" data-gpu="">Всі GPU</div>
-    <div class="chip" data-gpu="RTX 4060">RTX 4060</div>
-    <div class="chip" data-gpu="RTX 4050">RTX 4050</div>
+    <div class="chip" data-gpu="RTX 4060">4060</div>
+    <div class="chip" data-gpu="RTX 4050">4050</div>
+    <div class="chip" data-gpu="RTX 4070">4070</div>
+    <div class="chip" data-gpu="RTX 3060">3060</div>
     <div class="chip" data-profit="100">≥€100</div>
-    <div class="chip" data-profit="150">≥€150</div>
     <div class="chip" data-profit="200">≥€200</div>
+    <div class="chip" data-profit="300">≥€300</div>
   </div>
 </div>
 
@@ -128,115 +151,244 @@
   <div class="tab" data-tab="settings">Налаштування</div>
 </div>
 
+<!-- DEALS -->
 <div class="page on" id="tab-deals">
   <div class="sortbar">
     <button class="sb on" data-sort="score">Score</button>
     <button class="sb" data-sort="profit">Profit</button>
     <button class="sb" data-sort="newest">Нові</button>
-    <button class="sb" data-sort="price">Ціна</button>
-    <button class="sb" data-sort="listed">Дата</button>
+    <button class="sb" data-sort="price">Ціна↑</button>
+    <button class="sb" data-sort="listed">Дата публ.</button>
   </div>
   <div style="padding-top:10px" id="dealsList">
     <div class="skel"></div><div class="skel"></div>
   </div>
 </div>
 
+<!-- WATCH -->
 <div class="page" id="tab-watch">
   <div style="padding-top:10px">
-    <div style="font-size:11px;color:var(--muted);padding:0 2px 10px">Знижка 10–15% — варто перевірити</div>
-    <div id="watchList"><div class="skel"></div><div class="skel"></div></div>
+    <div style="font-size:11px;color:var(--muted);padding:0 2px 10px">Знижка 10–15% — не ідеально, але варто перевірити</div>
+    <div id="watchList"><div class="skel"></div></div>
   </div>
 </div>
 
+<!-- ACTIVITY -->
 <div class="page" id="tab-activity">
   <div style="padding-top:10px">
-    <div style="margin-bottom:16px">
-      <div class="sec-title">Ринкові ціни (75-й перцентиль)</div>
+    <div style="margin-bottom:14px">
+      <div class="stitle">Ринкові ціни (p75 оголошень)</div>
       <div class="pgrid" id="priceGrid">
-        <div class="skel" style="height:80px"></div>
-        <div class="skel" style="height:80px"></div>
+        <div class="skel" style="height:72px"></div>
+        <div class="skel" style="height:72px"></div>
       </div>
     </div>
-    <div>
-      <div class="sec-title">Останні цикли сканування</div>
-      <div id="logList"><div class="skel" style="height:40px"></div></div>
-    </div>
+    <div class="stitle">Останні цикли сканування</div>
+    <div id="logList"><div class="skel" style="height:38px"></div></div>
   </div>
 </div>
 
+<!-- SETTINGS -->
 <div class="page" id="tab-settings">
-  <div style="padding-top:12px">
-    <div class="sform">
+<div style="padding-top:10px" class="sf2">
 
-      <div class="sfield">
-        <label>Мін. знижка для Deal</label>
-        <div class="srow">
-          <input type="range" id="sMinDisc" min="5" max="40" step="1" value="15">
-          <div class="sval" id="vMinDisc">15%</div>
-        </div>
-      </div>
+  <!-- Фільтри -->
+  <div class="sgroup">
+    <div class="sgroup-title">Фільтри пошуку</div>
 
-      <div class="sfield">
-        <label>Мін. знижка для Watch</label>
-        <div class="srow">
-          <input type="range" id="sWatchDisc" min="3" max="20" step="1" value="10">
-          <div class="sval" id="vWatchDisc">10%</div>
-        </div>
-      </div>
+    <div class="sfield">
+      <label><span class="slabel">Мін. знижка — Deal</span><span class="sval" id="vMinDisc">15%</span></label>
+      <div class="shelp">Мінімальна знижка від ринкової ціни щоб вважатись угодою</div>
+      <div class="srow"><input type="range" id="sMinDisc" min="5" max="50" step="1" value="15"></div>
+    </div>
 
-      <div class="sfield">
-        <label>Мінімальний Profit</label>
-        <div class="srow">
-          <input type="range" id="sMinProfit" min="0" max="400" step="10" value="100">
-          <div class="sval" id="vMinProfit">€100</div>
-        </div>
-      </div>
+    <div class="sfield">
+      <label><span class="slabel">Мін. знижка — Watch</span><span class="sval" id="vWatchDisc">10%</span></label>
+      <div class="shelp">Менша знижка — потрапляє у Watch (слідкувати)</div>
+      <div class="srow"><input type="range" id="sWatchDisc" min="3" max="30" step="1" value="10"></div>
+    </div>
 
-      <div class="sfield">
-        <label>Максимальна ціна</label>
-        <div class="srow">
-          <input type="range" id="sMaxPrice" min="300" max="1000" step="50" value="1000">
-          <div class="sval" id="vMaxPrice">€1000</div>
-        </div>
-      </div>
+    <div class="sfield">
+      <label><span class="slabel">Мінімальний Profit</span><span class="sval" id="vMinProfit">€100</span></label>
+      <div class="shelp">Мінімальний прибуток з перепродажу після всіх витрат</div>
+      <div class="srow"><input type="range" id="sMinProfit" min="0" max="500" step="10" value="100"></div>
+    </div>
 
-      <div class="sfield">
-        <label>Мінімальний RAM</label>
-        <div class="srow">
-          <input type="range" id="sMinRam" min="0" max="32" step="8" value="16">
-          <div class="sval" id="vMinRam">16GB</div>
-        </div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">0 = не перевіряти RAM</div>
-      </div>
+    <div class="sfield">
+      <label><span class="slabel">Ціна від</span><span class="sval" id="vMinPrice">€0</span></label>
+      <div class="srow"><input type="range" id="sMinPrice" min="0" max="1000" step="50" value="0"></div>
+    </div>
 
-      <hr class="sdivider"/>
-
-      <div class="sfield">
-        <label>GPU</label>
-        <div class="grow">
-          <button class="gbtn on" data-gpu="RTX 4060">RTX 4060</button>
-          <button class="gbtn on" data-gpu="RTX 4050">RTX 4050</button>
-        </div>
-      </div>
-
-      <button class="savebtn" id="saveBtn">Зберегти</button>
-      <div class="smsg" id="saveMsg"></div>
-
+    <div class="sfield">
+      <label><span class="slabel">Ціна до</span><span class="sval" id="vMaxPrice">€2000</span></label>
+      <div class="shelp">Максимальна ціна оголошення (без обмежень = висока відеокарта)</div>
+      <div class="srow"><input type="range" id="sMaxPrice" min="300" max="5000" step="100" value="2000"></div>
     </div>
   </div>
+
+  <!-- Характеристики -->
+  <div class="sgroup">
+    <div class="sgroup-title">Характеристики ноутбука</div>
+
+    <div class="sfield">
+      <label><span class="slabel">Мінімальний RAM</span><span class="sval" id="vMinRam">16GB</span></label>
+      <div class="shelp">0 = не фільтрувати RAM (якщо не вказано в описі)</div>
+      <div class="srow"><input type="range" id="sMinRam" min="0" max="64" step="8" value="16"></div>
+    </div>
+
+    <div class="sfield">
+      <label><span class="slabel">Мінімальний SSD</span><span class="sval" id="vMinStorage">0GB</span></label>
+      <div class="shelp">0 = не фільтрувати. 512 = мінімум 512GB SSD</div>
+      <div class="srow"><input type="range" id="sMinStorage" min="0" max="2048" step="128" value="0"></div>
+    </div>
+
+    <div class="sfield">
+      <label><span class="slabel">Розмір екрану від</span><span class="sval" id="vMinScreen">0"</span></label>
+      <div class="srow"><input type="range" id="sMinScreen" min="0" max="18" step="0.5" value="0"></div>
+    </div>
+
+    <div class="sfield">
+      <label><span class="slabel">Розмір екрану до</span><span class="sval" id="vMaxScreen">0"</span></label>
+      <div class="shelp">0 = без обмеження</div>
+      <div class="srow"><input type="range" id="sMaxScreen" min="0" max="18" step="0.5" value="0"></div>
+    </div>
+
+    <div class="sfield">
+      <label><span class="slabel">CPU</span></label>
+      <div class="shelp">Порожньо = всі процесори</div>
+      <div class="cpu-row" id="cpuBtns">
+        <button class="cbtn" data-cpu="i5">i5</button>
+        <button class="cbtn" data-cpu="i7">i7</button>
+        <button class="cbtn" data-cpu="i9">i9</button>
+        <button class="cbtn" data-cpu="Ryzen 5">Ryzen 5</button>
+        <button class="cbtn" data-cpu="Ryzen 7">Ryzen 7</button>
+        <button class="cbtn" data-cpu="Ryzen 9">Ryzen 9</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GPU -->
+  <div class="sgroup">
+    <div class="sgroup-title">Відеокарти</div>
+    <div class="shelp" style="margin-bottom:10px">Порожньо = всі GPU. Натисни щоб вибрати конкретні.</div>
+
+    <div style="font-size:10px;color:var(--green);font-weight:600;margin-bottom:5px;letter-spacing:.05em">RTX 50 SERIES</div>
+    <div class="ggrid wide" style="margin-bottom:10px" id="gpu50"></div>
+
+    <div style="font-size:10px;color:var(--accent);font-weight:600;margin-bottom:5px;letter-spacing:.05em">RTX 40 SERIES</div>
+    <div class="ggrid wide" style="margin-bottom:10px" id="gpu40"></div>
+
+    <div style="font-size:10px;color:var(--yellow);font-weight:600;margin-bottom:5px;letter-spacing:.05em">RTX 30 SERIES</div>
+    <div class="ggrid wide" style="margin-bottom:10px" id="gpu30"></div>
+
+    <div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:5px;letter-spacing:.05em">GTX</div>
+    <div class="ggrid" style="margin-bottom:10px" id="gpuGTX"></div>
+
+    <button class="cbtn" id="gpuAllBtn" style="width:100%;margin-top:2px">Скинути — всі GPU</button>
+  </div>
+
+  <!-- Легенда -->
+  <div class="sgroup">
+    <div class="sgroup-title">Пояснення позначок</div>
+    <div class="legend">
+      <div class="litem">
+        <div class="lbadge" style="background:rgba(0,255,136,.1);color:var(--green);border:1px solid rgba(0,255,136,.2)">Low</div>
+        <div class="ldesc"><b>Low Risk</b> — продавець активний, хороший опис, знижка в нормі. Можна купувати.</div>
+      </div>
+      <div class="litem">
+        <div class="lbadge" style="background:rgba(255,204,0,.1);color:var(--yellow);border:1px solid rgba(255,204,0,.2)">Med</div>
+        <div class="ldesc"><b>Medium Risk</b> — короткий опис або новий продавець. Варто запитати більше фото.</div>
+      </div>
+      <div class="litem">
+        <div class="lbadge" style="background:rgba(255,68,102,.1);color:var(--red);border:1px solid rgba(255,68,102,.2)">High</div>
+        <div class="ldesc"><b>High Risk</b> — дуже дешево, майже немає інфо або новий акаунт. Зустріч тільки в публічному місці.</div>
+      </div>
+      <div class="litem">
+        <div class="lbadge" style="background:rgba(0,229,255,.1);color:var(--accent);border:1px solid rgba(0,229,255,.2)">High liq</div>
+        <div class="ldesc"><b>High Liquidity</b> — популярна модель (ASUS TUF, Lenovo LOQ, HP Victus, MSI). Легко перепродати швидко.</div>
+      </div>
+      <div class="litem">
+        <div class="lbadge" style="background:rgba(255,255,255,.05);color:var(--muted);border:1px solid var(--border)">Med liq</div>
+        <div class="ldesc"><b>Medium Liquidity</b> — продати можна, але займе більше часу.</div>
+      </div>
+      <div class="litem">
+        <div class="lbadge" style="background:rgba(0,229,255,.07);color:var(--accent);border:1px solid rgba(0,229,255,.15)">Score</div>
+        <div class="ldesc"><b>Deal Score 0–100</b> — загальна оцінка угоди. Враховує profit, знижку, ліквідність і ризик. Більше = краще.</div>
+      </div>
+      <div class="litem">
+        <div class="lbadge" style="background:rgba(255,140,0,.1);color:var(--orange);border:1px solid rgba(255,140,0,.2)">WATCH</div>
+        <div class="ldesc"><b>Watch</b> — знижка є, але менша за поріг Deal. Варто слідкувати — якщо продавець знизить ціну, стане угодою.</div>
+      </div>
+      <div class="litem">
+        <div class="lbadge" style="background:rgba(0,229,255,.07);color:var(--accent);border:1px solid rgba(0,229,255,.15)">p75</div>
+        <div class="ldesc"><b>Ринкова ціна (p75)</b> — 75-й перцентиль активних оголошень. Тобто 75% продавців просять більше цієї ціни. Реалістичніше ніж середня.</div>
+      </div>
+    </div>
+  </div>
+
+  <button class="savebtn" id="saveBtn">Зберегти налаштування</button>
+  <div class="smsg" id="saveMsg"></div>
+  <div style="height:20px"></div>
+
+</div>
 </div>
 
 <button class="fab" id="fabBtn">↻</button>
 
 <script>
-const tg = window.Telegram?.WebApp;
+const tg=window.Telegram?.WebApp;
 if(tg){tg.expand();tg.setHeaderColor('#111318');tg.setBackgroundColor('#0a0b0e')}
+const API=window.location.origin;
+let deals=[],watches=[],filters={gpu:'',profit:0},sortBy='score',loading=false;
 
-const API = window.location.origin;
-let deals=[], watches=[], filters={gpu:'',profit:0}, sortBy='score', loading=false;
+// GPU definitions
+const GPU_GROUPS={
+  g50:["RTX 5090","RTX 5080","RTX 5070 Ti","RTX 5070"],
+  g40:["RTX 4090","RTX 4080","RTX 4070 Ti","RTX 4070","RTX 4060 Ti","RTX 4060","RTX 4050"],
+  g30:["RTX 3080 Ti","RTX 3080","RTX 3070 Ti","RTX 3070","RTX 3060 Ti","RTX 3060","RTX 3050"],
+  gtx:["GTX 1660 Ti","GTX 1650"],
+};
 
-// ── Tabs ─────────────────────────────────────────────────
-document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+// Build GPU buttons
+function buildGpuBtns(){
+  const map={g50:'g50',g40:'',g30:'g30',gtx:''};
+  Object.entries(GPU_GROUPS).forEach(([grp,gpus])=>{
+    const el=document.getElementById('gpu'+grp.replace('g','').toUpperCase().replace('GTX','GTX'));
+    if(!el) return;
+    el.innerHTML=gpus.map(g=>`<button class="gbtn2 ${map[grp]}" data-gpu="${g}">${g.replace('RTX ','').replace('GTX ','GTX ')}</button>`).join('');
+  });
+  document.querySelectorAll('.gbtn2').forEach(b=>b.addEventListener('click',()=>b.classList.toggle('on')));
+}
+// Fix GPU element IDs
+document.getElementById('gpu50').id='gpu50';
+document.getElementById('gpu40').id='gpu40';
+document.getElementById('gpu30').id='gpu30';
+document.getElementById('gpuGTX').id='gpuGTX';
+
+function buildGpuBtns2(){
+  const grps=[
+    {id:'gpu50',cls:'g50',gpus:GPU_GROUPS.g50},
+    {id:'gpu40',cls:'',   gpus:GPU_GROUPS.g40},
+    {id:'gpu30',cls:'g30',gpus:GPU_GROUPS.g30},
+    {id:'gpuGTX',cls:'',  gpus:GPU_GROUPS.gtx},
+  ];
+  grps.forEach(({id,cls,gpus})=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    el.innerHTML=gpus.map(g=>`<button class="gbtn2 ${cls}" data-gpu="${g}">${g.replace('RTX ','').replace('GTX ','GTX ')}</button>`).join('');
+    el.querySelectorAll('.gbtn2').forEach(b=>b.addEventListener('click',()=>b.classList.toggle('on')));
+  });
+}
+buildGpuBtns2();
+
+document.getElementById('gpuAllBtn').addEventListener('click',()=>{
+  document.querySelectorAll('.gbtn2').forEach(b=>b.classList.remove('on'));
+});
+
+document.querySelectorAll('.cbtn[data-cpu]').forEach(b=>b.addEventListener('click',()=>b.classList.toggle('on')));
+
+// Tabs
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   document.querySelectorAll('.tab,.page').forEach(x=>x.classList.remove('on'));
   t.classList.add('on');
   document.getElementById('tab-'+t.dataset.tab).classList.add('on');
@@ -245,70 +397,66 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
   if(t.dataset.tab==='watch') renderWatches();
 }));
 
-// ── Fetch deals ──────────────────────────────────────────
+// Fetch
 async function fetchDeals(){
   if(loading) return;
-  loading=true;
-  document.getElementById('fabBtn').classList.add('spin');
+  loading=true; document.getElementById('fabBtn').classList.add('spin');
   try{
     const p=new URLSearchParams({sort_by:sortBy,min_profit:filters.profit||0,limit:100});
     if(filters.gpu) p.set('gpu',filters.gpu);
-    const [dr,wr]=await Promise.all([
+    const[dr,wr]=await Promise.all([
       fetch(`${API}/deals?${p}`).then(r=>r.json()),
       fetch(`${API}/deals?${p}&include_watch=true`).then(r=>r.json()),
     ]);
-    deals   = (dr.deals||[]).filter(d=>d.is_deal);
-    watches = (wr.deals||[]).filter(d=>d.is_watch&&!d.is_deal);
+    deals=(dr.deals||[]).filter(d=>d.is_deal);
+    watches=(wr.deals||[]).filter(d=>d.is_watch&&!d.is_deal);
     document.getElementById('dealsLabel').textContent=`${deals.length} deals`;
     document.getElementById('watchLabel').textContent=`${watches.length} watch`;
-    renderDeals();
-    renderWatches();
-  }catch(e){ showErr('dealsList'); }
-  finally{ loading=false; document.getElementById('fabBtn').classList.remove('spin'); }
+    renderDeals(); renderWatches();
+  }catch(e){showErr('dealsList');}
+  finally{loading=false;document.getElementById('fabBtn').classList.remove('spin');}
 }
 
-// ── Activity ─────────────────────────────────────────────
 async function fetchActivity(){
   try{
     const d=await fetch(`${API}/activity`).then(r=>r.json());
     renderPrices(d.market_prices||{});
     renderLog(d.scrape_log||[]);
-  }catch(e){ showErr('logList'); }
+  }catch(e){showErr('logList');}
 }
 
-// ── Render cards ─────────────────────────────────────────
+// Render
 function renderDeals(){
   const el=document.getElementById('dealsList');
-  if(!deals.length){
-    el.innerHTML=`<div class="state-msg"><div class="ico">🔍</div>Немає угод.<br>Сканування кожні 90 сек.</div>`;
-    return;
-  }
+  if(!deals.length){el.innerHTML=`<div class="state-msg"><div class="ico">🔍</div>Немає угод. Сканування кожні 90 сек.</div>`;return;}
   el.innerHTML=deals.map((d,i)=>cardHTML(d,i,false)).join('');
 }
-
 function renderWatches(){
   const el=document.getElementById('watchList');
-  if(!watches.length){
-    el.innerHTML=`<div class="state-msg"><div class="ico">👁</div>Немає watch оголошень.</div>`;
-    return;
-  }
+  if(!watches.length){el.innerHTML=`<div class="state-msg"><div class="ico">👁</div>Немає watch оголошень.</div>`;return;}
   el.innerHTML=watches.map((d,i)=>cardHTML(d,i,true)).join('');
 }
 
 function fmtListed(raw){
   if(!raw) return '';
   try{
-    let dt;
-    if(/^\d+$/.test(raw)) dt=new Date(parseInt(raw));
-    else dt=new Date(raw);
-    const now=new Date();
-    const diffH=Math.floor((now-dt)/3600000);
-    if(diffH<1) return 'Щойно';
-    if(diffH<24) return `${diffH}г тому`;
-    const diffD=Math.floor(diffH/24);
-    if(diffD<7) return `${diffD}д тому`;
-    return dt.toLocaleDateString('uk',{day:'numeric',month:'short'});
-  }catch(e){ return ''; }
+    let dt=/^\d+$/.test(raw)?new Date(parseInt(raw)):new Date(raw);
+    const now=new Date(), dh=Math.floor((now-dt)/3600000);
+    if(dh<1) return 'Щойно';
+    if(dh<24) return `${dh}г тому`;
+    const dd=Math.floor(dh/24);
+    if(dd<7) return `${dd}д тому`;
+    return dt.toLocaleDateString('uk',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  }catch(e){return '';}
+}
+
+function specsStr(d){
+  const p=[];
+  if(d.ram) p.push(`${d.ram}GB RAM`);
+  if(d.storage) p.push(`${d.storage}GB SSD`);
+  if(d.screen) p.push(`${d.screen}"`);
+  if(d.cpu) p.push(d.cpu);
+  return p.join(' · ');
 }
 
 function cardHTML(d,i,isWatch){
@@ -316,135 +464,140 @@ function cardHTML(d,i,isWatch){
   const sc=Math.max(0,Math.min(100,d.deal_score||0));
   const disc=Math.round(d.discount_percent||0);
   const listed=fmtListed(d.listed_date);
+  const specs=specsStr(d);
+  const rLabel={low:'Low risk',medium:'Med risk',high:'High risk'}[d.risk]||d.risk;
+  const lLabel={high:'High liq',medium:'Med liq',low:'Low liq'}[d.liquidity]||d.liquidity;
   return `
   <div class="card${isWatch?' wcard':sc>=60?' hot':''}" style="animation-delay:${Math.min(i*30,250)}ms">
     <div class="ch">
       <div class="ctitle">${esc(d.title)}</div>
-      <div class="badges">
-        ${isWatch?'<div class="wbadge">WATCH</div>':''}
-        <div class="gbadge">${esc(d.gpu)}</div>
+      <div class="bdgs">
+        ${isWatch?'<div class="wbdg">WATCH</div>':''}
+        <div class="gbdg">${esc(d.gpu)}</div>
       </div>
     </div>
     <div class="cb">
-      <div class="sbar"><div class="${isWatch?'sfill wfill':'sfill'}" style="width:${isWatch?Math.min(disc*2,100):sc}%"></div></div>
+      <div class="sbar"><div class="${isWatch?'sf wf':'sf'}" style="width:${isWatch?Math.min(disc*2,100):sc}%"></div></div>
       <div class="prow">
         <div class="pask">€${Math.round(d.price)}</div>
         <div class="pmkt">€${Math.round(d.market_price)}</div>
-        <div class="pbadge${isWatch?' w':''}">
+        <div class="pprofit${isWatch?' w':''}">
           ${isWatch?`−${disc}%`:`+€${Math.round(d.profit)} (${Math.round(d.profit_percent)}%)`}
         </div>
       </div>
+      ${specs?`<div class="specs">${esc(specs)}</div>`:''}
       <div class="tags">
-        <span class="tag ${rc}">${{low:'Low',medium:'Med',high:'High'}[d.risk]||d.risk}</span>
-        <span class="tag">${{high:'High liq',medium:'Med liq',low:'Low liq'}[d.liquidity]||d.liquidity}</span>
-        ${d.ram?`<span class="tag">${d.ram}GB RAM</span>`:''}
-        ${listed?`<span class="tag listed">${listed}</span>`:''}
+        <span class="tag ${rc}">${rLabel}</span>
+        <span class="tag">${lLabel}</span>
+        ${listed?`<span class="tag tlisted">🕐 ${listed}</span>`:''}
         <span class="tag">📍 ${esc(d.location||'NL')}</span>
-        ${!isWatch?`<span class="tag">${sc}/100</span>`:''}
+        ${!isWatch?`<span class="tag">${sc}/100</span>`:`<span class="tag">−${disc}%</span>`}
       </div>
-      <a class="cbtn" href="${esc(d.url)}" target="_blank"
+      <a class="abtn" href="${esc(d.url)}" target="_blank"
          onclick="tg?.openLink?.('${esc(d.url)}');return false;">Відкрити оголошення</a>
     </div>
   </div>`;
 }
 
-// ── Activity ─────────────────────────────────────────────
 function renderPrices(prices){
-  document.getElementById('priceGrid').innerHTML=Object.entries(prices).map(([gpu,p])=>`
+  // Show only GPUs with data or popular ones
+  const popular=["RTX 4060","RTX 4050","RTX 4070","RTX 3060","RTX 3070","RTX 4060 Ti"];
+  const toShow=Object.entries(prices).filter(([g,p])=>p.source==='dynamic'||popular.includes(g));
+  document.getElementById('priceGrid').innerHTML=toShow.slice(0,8).map(([gpu,p])=>`
     <div class="pcard">
       <div class="pgpu">${gpu}</div>
       <div class="pval">€${p.market}</div>
-      <div class="psub">Resale ~€${p.resale}${p.p75?` · p75=€${p.p75}`:''}</div>
-      <div class="pbdg ${p.source==='dynamic'?'dyn':'def'}">
-        ${p.source==='dynamic'?`${p.sample_size} оголошень`:'Default'}
+      <div class="psub">Resale ~€${p.resale}</div>
+      <div class="pbdg2 ${p.source==='dynamic'?'dyn':'sta'}">
+        ${p.source==='dynamic'?`${p.sample_size} оголошень`:'статична'}
       </div>
     </div>`).join('');
 }
 
 function renderLog(log){
   const el=document.getElementById('logList');
-  if(!log.length){
-    el.innerHTML=`<div class="state-msg" style="padding:20px"><div class="ico">⏳</div>Перший цикл ще не завершився</div>`;
-    return;
-  }
+  if(!log.length){el.innerHTML=`<div class="state-msg" style="padding:16px"><div class="ico">⏳</div>Перший цикл не завершився</div>`;return;}
   el.innerHTML=log.map(r=>{
     const t=new Date(r.scraped_at+'Z');
     const time=t.toLocaleTimeString('uk',{hour:'2-digit',minute:'2-digit'});
-    const hasDeal=r.deals_found>0, hasWatch=(r.watch_found||0)>0;
+    const hd=r.deals_found>0,hw=(r.watch_found||0)>0;
     return `<div class="lrow">
-      <div class="dot ${hasDeal?'ddeal':hasWatch?'dwatch':'didle'}"></div>
+      <div class="dot ${hd?'dd':hw?'dw':'di'}"></div>
       <div class="ltime">${time}</div>
       <div class="lbody">
         <span class="lc">${r.total_scraped} скрап</span>
-        ${r.new_found?`<span class="lc ln"> +${r.new_found} нових</span>`:''}
-        ${hasDeal?`<span class="lc ld"> ${r.deals_found} deal</span>`:''}
-        ${hasWatch?`<span class="lc lw2"> ${r.watch_found} watch</span>`:''}
+        ${r.new_found?`<span class="lc ln"> +${r.new_found}</span>`:''}
+        ${hd?`<span class="lc ld"> ${r.deals_found} deal</span>`:''}
+        ${hw?`<span class="lc lw2"> ${r.watch_found} watch</span>`:''}
       </div>
     </div>`;
   }).join('');
 }
 
-// ── Settings ──────────────────────────────────────────────
+// Settings
 const sliders=[
-  {id:'sMinDisc',  vid:'vMinDisc',  fmt:v=>v+'%'},
-  {id:'sWatchDisc',vid:'vWatchDisc',fmt:v=>v+'%'},
-  {id:'sMinProfit',vid:'vMinProfit',fmt:v=>'€'+v},
-  {id:'sMaxPrice', vid:'vMaxPrice', fmt:v=>'€'+v},
-  {id:'sMinRam',   vid:'vMinRam',   fmt:v=>v=='0'?'Будь-який':v+'GB'},
+  {id:'sMinDisc',  vid:'vMinDisc',   fmt:v=>v+'%'},
+  {id:'sWatchDisc',vid:'vWatchDisc', fmt:v=>v+'%'},
+  {id:'sMinProfit',vid:'vMinProfit', fmt:v=>'€'+v},
+  {id:'sMinPrice', vid:'vMinPrice',  fmt:v=>'€'+v},
+  {id:'sMaxPrice', vid:'vMaxPrice',  fmt:v=>v>=5000?'Без обмеж.':'€'+v},
+  {id:'sMinRam',   vid:'vMinRam',    fmt:v=>v=='0'?'Будь-який':v+'GB'},
+  {id:'sMinStorage',vid:'vMinStorage',fmt:v=>v=='0'?'Будь-який':v+'GB'},
+  {id:'sMinScreen',vid:'vMinScreen', fmt:v=>v=='0'?'Будь-який':v+'"'},
+  {id:'sMaxScreen',vid:'vMaxScreen', fmt:v=>v=='0'?'Без обмеж.':v+'"'},
 ];
-
 sliders.forEach(({id,vid,fmt})=>{
   const el=document.getElementById(id);
-  el.addEventListener('input',()=>document.getElementById(vid).textContent=fmt(el.value));
+  if(el) el.addEventListener('input',()=>document.getElementById(vid).textContent=fmt(el.value));
 });
-
-document.querySelectorAll('.gbtn').forEach(b=>b.addEventListener('click',()=>b.classList.toggle('on')));
 
 async function loadSettings(){
   try{
     const s=await fetch(`${API}/settings`).then(r=>r.json());
-    document.getElementById('sMinDisc').value   = s.min_discount||15;
-    document.getElementById('sWatchDisc').value = s.watch_discount||10;
-    document.getElementById('sMinProfit').value = s.min_profit||100;
-    document.getElementById('sMaxPrice').value  = s.max_price||1000;
-    document.getElementById('sMinRam').value    = s.min_ram||16;
-    sliders.forEach(({id,vid,fmt})=>
-      document.getElementById(vid).textContent=fmt(document.getElementById(id).value)
-    );
-    const gpus=s.gpus||['RTX 4050','RTX 4060'];
-    document.querySelectorAll('.gbtn').forEach(b=>b.classList.toggle('on',gpus.includes(b.dataset.gpu)));
-  }catch(e){ console.error(e); }
+    const map={sMinDisc:'min_discount',sWatchDisc:'watch_discount',sMinProfit:'min_profit',
+               sMinPrice:'min_price',sMaxPrice:'max_price',sMinRam:'min_ram',
+               sMinStorage:'min_storage',sMinScreen:'min_screen',sMaxScreen:'max_screen'};
+    Object.entries(map).forEach(([id,key])=>{
+      const el=document.getElementById(id);
+      if(el&&s[key]!=null) el.value=s[key];
+    });
+    sliders.forEach(({id,vid,fmt})=>{
+      const el=document.getElementById(id);
+      if(el) document.getElementById(vid).textContent=fmt(el.value);
+    });
+    const gpus=s.gpus||[];
+    document.querySelectorAll('.gbtn2').forEach(b=>b.classList.toggle('on',gpus.length>0&&gpus.includes(b.dataset.gpu)));
+    const cpus=s.cpus||[];
+    document.querySelectorAll('.cbtn[data-cpu]').forEach(b=>b.classList.toggle('on',cpus.includes(b.dataset.cpu)));
+  }catch(e){console.error(e);}
 }
 
-document.getElementById('saveBtn').addEventListener('click', async ()=>{
-  const gpus=[...document.querySelectorAll('.gbtn.on')].map(b=>b.dataset.gpu);
+document.getElementById('saveBtn').addEventListener('click',async()=>{
+  const gpus=[...document.querySelectorAll('.gbtn2.on')].map(b=>b.dataset.gpu);
+  const cpus=[...document.querySelectorAll('.cbtn[data-cpu].on')].map(b=>b.dataset.cpu);
   const body={
     min_discount:   parseFloat(document.getElementById('sMinDisc').value),
     watch_discount: parseFloat(document.getElementById('sWatchDisc').value),
     min_profit:     parseFloat(document.getElementById('sMinProfit').value),
+    min_price:      parseFloat(document.getElementById('sMinPrice').value),
     max_price:      parseFloat(document.getElementById('sMaxPrice').value),
     min_ram:        parseInt(document.getElementById('sMinRam').value),
-    gpus: gpus.length?gpus:['RTX 4050','RTX 4060'],
+    min_storage:    parseInt(document.getElementById('sMinStorage').value),
+    min_screen:     parseFloat(document.getElementById('sMinScreen').value),
+    max_screen:     parseFloat(document.getElementById('sMaxScreen').value),
+    gpus, cpus,
   };
   try{
-    await fetch(`${API}/settings`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(body)
-    });
-    const msg=document.getElementById('saveMsg');
-    msg.textContent='Збережено';
-    setTimeout(()=>msg.textContent='',2500);
+    await fetch(`${API}/settings`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const m=document.getElementById('saveMsg');
+    m.textContent='Збережено'; setTimeout(()=>m.textContent='',2500);
     fetchDeals();
-  }catch(e){
-    document.getElementById('saveMsg').textContent='Помилка';
-  }
+  }catch(e){document.getElementById('saveMsg').textContent='Помилка';}
 });
 
-// ── Filters ───────────────────────────────────────────────
+// Filters & Sort
 document.getElementById('filterChips').addEventListener('click',e=>{
-  const b=e.target.closest('.chip');
-  if(!b) return;
+  const b=e.target.closest('.chip'); if(!b) return;
   if('gpu' in b.dataset){
     document.querySelectorAll('.chip[data-gpu]').forEach(c=>c.classList.remove('on'));
     b.classList.add('on'); filters.gpu=b.dataset.gpu; fetchDeals();
@@ -455,23 +608,18 @@ document.getElementById('filterChips').addEventListener('click',e=>{
     fetchDeals();
   }
 });
-
 document.querySelector('.sortbar').addEventListener('click',e=>{
-  const b=e.target.closest('.sb');
-  if(!b) return;
+  const b=e.target.closest('.sb'); if(!b) return;
   document.querySelectorAll('.sb').forEach(x=>x.classList.remove('on'));
   b.classList.add('on'); sortBy=b.dataset.sort; fetchDeals();
 });
-
 document.getElementById('fabBtn').addEventListener('click',()=>{fetchDeals();fetchActivity();});
 
-function showErr(id){
-  document.getElementById(id).innerHTML=`<div class="state-msg"><div class="ico">⚠</div>Помилка завантаження</div>`;
-}
+function showErr(id){document.getElementById(id).innerHTML=`<div class="state-msg"><div class="ico">⚠</div>Помилка завантаження</div>`;}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 
-setInterval(fetchDeals, 30_000);
-setInterval(fetchActivity, 60_000);
+setInterval(fetchDeals,30000);
+setInterval(fetchActivity,60000);
 fetchDeals();
 </script>
 </body>
