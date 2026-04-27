@@ -156,7 +156,6 @@
   <div class="sortbar">
     <button class="sb on" data-sort="score">Score</button>
     <button class="sb" data-sort="profit">Profit</button>
-    <button class="sb" data-sort="newest">Нові</button>
     <button class="sb" data-sort="price">Ціна↑</button>
     <button class="sb" data-sort="listed">Дата публ.</button>
   </div>
@@ -438,15 +437,24 @@ function renderWatches(){
 }
 
 function fmtListed(raw){
-  if(!raw) return '';
+  if(!raw||raw==='') return '';
   try{
-    let dt=/^\d+$/.test(raw)?new Date(parseInt(raw)):new Date(raw);
+    let dt;
+    const s=String(raw).trim();
+    if(/^\d+$/.test(s)){
+      // Unix timestamp — ms if >1e12, else seconds
+      const n=parseInt(s);
+      dt=new Date(n>1e12?n:n*1000);
+    } else {
+      dt=new Date(s.replace(' ','T').replace(/\+.*$/,'').replace(/\.\d+$/,''));
+    }
+    if(isNaN(dt.getTime())) return '';
     const now=new Date(), dh=Math.floor((now-dt)/3600000);
     if(dh<1) return 'Щойно';
-    if(dh<24) return `${dh}г тому`;
+    if(dh<24) return dh+'г тому';
     const dd=Math.floor(dh/24);
-    if(dd<7) return `${dd}д тому`;
-    return dt.toLocaleDateString('uk',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    if(dd<7) return dd+'д тому';
+    return dt.toLocaleDateString('uk',{day:'numeric',month:'short'});
   }catch(e){return '';}
 }
 
