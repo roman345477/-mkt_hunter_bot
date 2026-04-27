@@ -1,10 +1,10 @@
 """
-FastAPI — deals, settings, activity, Mini App.
+FastAPI — deals, settings, activity, market prices.
 """
 
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
@@ -12,13 +12,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from database import get_stats, get_deals, init_db, get_scrape_stats
-from deal_engine import get_price_cache_info
 import deal_engine as de
+import market_prices as mp
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Marktplaats Hunter", version="1.0.0")
+app = FastAPI(title="Marktplaats Hunter", version="2.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 FRONTEND_DIR = Path("/app/frontend")
@@ -29,9 +29,14 @@ _settings = {
     "min_discount":   de.MIN_DISCOUNT_PCT,
     "watch_discount": de.WATCH_DISCOUNT_PCT,
     "min_profit":     de.MIN_PROFIT_EUR,
+    "min_price":      de.MIN_PRICE_EUR,
     "max_price":      de.MAX_PRICE_EUR,
     "min_ram":        de.MIN_RAM,
+    "min_storage":    de.MIN_STORAGE,
+    "min_screen":     de.MIN_SCREEN,
+    "max_screen":     de.MAX_SCREEN,
     "gpus":           list(de.ALLOWED_GPUS),
+    "cpus":           list(de.ALLOWED_CPUS),
 }
 
 
@@ -39,9 +44,14 @@ class Settings(BaseModel):
     min_discount:   float = 15
     watch_discount: float = 10
     min_profit:     float = 100
-    max_price:      float = 1000
+    min_price:      float = 0
+    max_price:      float = 5000
     min_ram:        int   = 16
-    gpus:           list  = ["RTX 4050", "RTX 4060"]
+    min_storage:    int   = 0
+    min_screen:     float = 0
+    max_screen:     float = 0
+    gpus:           List[str] = []
+    cpus:           List[str] = []
 
 
 @app.on_event("startup")
@@ -56,7 +66,7 @@ async def health():
 
 
 @app.get("/settings")
-async def get_settings():
+async def get_settings_endpoint():
     return _settings
 
 
@@ -66,9 +76,14 @@ async def update_settings(s: Settings):
     de.MIN_DISCOUNT_PCT   = s.min_discount
     de.WATCH_DISCOUNT_PCT = s.watch_discount
     de.MIN_PROFIT_EUR     = s.min_profit
+    de.MIN_PRICE_EUR      = s.min_price
     de.MAX_PRICE_EUR      = s.max_price
     de.MIN_RAM            = s.min_ram
-    de.ALLOWED_GPUS       = s.gpus if s.gpus else ["RTX 4050", "RTX 4060"]
+    de.MIN_STORAGE        = s.min_storage
+    de.MIN_SCREEN         = s.min_screen
+    de.MAX_SCREEN         = s.max_screen
+    de.ALLOWED_GPUS       = s.gpus if s.gpus else list(mp.known_gpus())
+    de.ALLOWED_CPUS       = s.cpus
     logger.info(f"Settings updated: {_settings}")
     return {"status": "ok", "settings": _settings}
 
@@ -79,7 +94,7 @@ async def deals_endpoint(
     offset:        int   = Query(0, ge=0),
     min_profit:    float = Query(0),
     gpu:           Optional[str] = Query(None),
-    max_price:     float = Query(9999),
+    max_price:     float = Query(999999),
     sort_by:       str   = Query("score"),
     all:           bool  = Query(False),
     include_watch: bool  = Query(False),
@@ -94,7 +109,7 @@ async def deals_endpoint(
 
 @app.get("/latest")
 async def latest_endpoint(limit: int = Query(30, le=100)):
-    rows = get_deals(only_deals=False, include_watch=False, limit=limit, sort_by="newest")
+    rows = get_deals(only_deals=False, limit=limit, sort_by="newest")
     return {"count": len(rows), "listings": rows}
 
 
@@ -102,8 +117,14 @@ async def latest_endpoint(limit: int = Query(30, le=100)):
 async def activity():
     return {
         "scrape_log":    get_scrape_stats(),
-        "market_prices": get_price_cache_info(),
+        "market_prices": mp.all_prices_info(),
     }
+
+
+@app.get("/gpus")
+async def gpus_list():
+    """Return all known GPUs with their current prices."""
+    return {"gpus": mp.all_prices_info()}
 
 
 @app.get("/deals/{item_id}")
@@ -128,4 +149,4 @@ async def root():
     index = FRONTEND_DIR / "index.html"
     if index.exists():
         return FileResponse(str(index))
-    return {"message": "Marktplaats Hunter API", "docs": "/docs"}
+    return {"message": "Marktplaats Hunter v2", "docs": "/docs"}
