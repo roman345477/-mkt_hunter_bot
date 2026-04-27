@@ -1,25 +1,23 @@
 """
-Marktplaats scraper — expanded GPU support, anti-block delays, night pause.
+Marktplaats scraper — laptop-only filter, better date parsing, anti-block.
 """
 
 import re
 import random
 import logging
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 import httpx
 
 logger = logging.getLogger(__name__)
 
-# ── All supported GPU keywords ───────────────────────────────────────────────
+# ── GPU keyword map ───────────────────────────────────────────────────────────
 GPU_KEYWORDS = {
-    # RTX 50
     "RTX 5090":    ["5090"],
     "RTX 5080":    ["5080"],
     "RTX 5070 Ti": ["5070 ti", "5070ti"],
     "RTX 5070":    ["5070"],
-    # RTX 40
     "RTX 4090":    ["4090"],
     "RTX 4080":    ["4080"],
     "RTX 4070 Ti": ["4070 ti", "4070ti"],
@@ -27,7 +25,6 @@ GPU_KEYWORDS = {
     "RTX 4060 Ti": ["4060 ti", "4060ti"],
     "RTX 4060":    ["4060"],
     "RTX 4050":    ["4050"],
-    # RTX 30
     "RTX 3080 Ti": ["3080 ti", "3080ti"],
     "RTX 3080":    ["3080"],
     "RTX 3070 Ti": ["3070 ti", "3070ti"],
@@ -35,19 +32,35 @@ GPU_KEYWORDS = {
     "RTX 3060 Ti": ["3060 ti", "3060ti"],
     "RTX 3060":    ["3060"],
     "RTX 3050":    ["3050"],
-    # GTX
     "GTX 1660 Ti": ["1660 ti", "1660ti"],
     "GTX 1650":    ["1650"],
 }
 
-# Search queries sent to Marktplaats
+# ── Words that MUST appear to confirm it's a laptop ──────────────────────────
+LAPTOP_KEYWORDS = [
+    "laptop", "notebook", "gaming laptop", "gaming notebook",
+    "laptops", "portable", "15.6", "15,6", "17.3", "17,3",
+    "14 inch", "15 inch", "16 inch", "17 inch",
+    "14\"", "15\"", "16\"", "17\"",
+]
+
+# ── Words that immediately disqualify the listing ────────────────────────────
+EXCLUDE_KEYWORDS = [
+    "ps5", "playstation", "xbox", "nintendo", "console",
+    "desktop", "pc tower", "gaming pc", "gpu card", "videokaart",
+    "grafische kaart", "graphics card", "mini pc", "nuc",
+    "ipad", "tablet", "telefoon", "smartphone",
+    "docking", "dock station", "monitor", "scherm",
+]
+
 SEARCH_QUERIES = [
-    "RTX 4060 laptop",
-    "RTX 4050 laptop",
-    "RTX 4070 laptop",
-    "RTX 3060 laptop",
-    "RTX 3070 laptop",
-    "gaming laptop nvidia",
+    "gaming laptop RTX",
+    "laptop RTX 4060",
+    "laptop RTX 4050",
+    "laptop RTX 4070",
+    "laptop RTX 3060",
+    "laptop RTX 3070",
+    "laptop nvidia RTX",
 ]
 
 MARKTPLAATS_BASE = "https://www.marktplaats.nl"
@@ -77,20 +90,60 @@ def get_headers() -> dict:
     }
 
 
-def build_params(query: str, max_price: int = 5000) -> dict:
-    return {
-        "query": query,
-        "categoryId": "31",
-        "condition": "new,as-good-as-new",
-        "priceFrom": "200",
-        "priceTo": str(max_price),
-        "sortBy": "SORT_INDEX",
-        "sortOrder": "DECREASING",
-        "offset": 0,
-        "limit": 30,
-        "searchInTitleAndDescription": "true",
-        "attributes": "",
-    }
+def is_laptop(title: str, description: str) -> bool:
+    """Returns True only if listing is clearly a laptop."""
+    combined = (title + " " + description).lower()
+
+    # Check exclusions first
+    for kw in EXCLUDE_KEYWORDS:
+        if kw in combined:
+            return False
+
+    # Must contain at least one laptop keyword
+    for kw in LAPTOP_KEYWORDS:
+        if kw in combined:
+            return True
+
+    # GPU model alone in title without laptop context = likely GPU card
+    # Allow if title is long enough (laptops have longer titles)
+    if len(title) > 25:
+        return True
+
+    return False
+
+
+def parse_listed_date(raw) -> str:
+    """
+    Robustly parse listed_date from various Marktplaats formats.
+    Returns ISO string or empty string.
+    """
+    if not raw:
+        return ""
+    try:
+        # Unix timestamp in milliseconds (most common)
+        if isinstance(raw, (int, float)):
+            ts = raw / 1000 if raw > 1e10 else raw
+            return datetime.utcfromtimestamp(ts).isoformat()
+
+        raw_str = str(raw).strip()
+
+        # Already looks like ISO
+        if "T" in raw_str or "-" in raw_str:
+            # Remove timezone info for consistency
+            clean = raw_str.replace("Z", "").split("+")[0].split(".")[0]
+            datetime.fromisoformat(clean)  # validate
+            return clean
+
+        # Numeric string = milliseconds
+        if raw_str.isdigit():
+            ts = int(raw_str)
+            if ts > 1e12:
+                ts = ts / 1000
+            return datetime.utcfromtimestamp(ts).isoformat()
+
+        return ""
+    except Exception:
+        return ""
 
 
 def extract_gpu(text: str) -> Optional[str]:
@@ -104,7 +157,7 @@ def extract_gpu(text: str) -> Optional[str]:
 
 
 def extract_ram(text: str) -> int:
-    for pat in [r"(\d+)\s*GB\s*RAM", r"(\d+)\s*GB", r"RAM\s*(\d+)"]:
+    for pat in [r"(\d+)\s*GB\s*RAM", r"(\d+)\s*GB\s*DDR", r"(\d+)GB"]:
         m = re.search(pat, text, re.IGNORECASE)
         if m:
             v = int(m.group(1))
@@ -114,8 +167,8 @@ def extract_ram(text: str) -> int:
 
 
 def extract_storage(text: str) -> int:
-    """Extract SSD/storage in GB."""
-    for pat in [r"(\d+)\s*TB", r"(\d+)\s*GB\s*SSD", r"(\d+)\s*GB\s*NVMe", r"SSD\s*(\d+)"]:
+    for pat in [r"(\d+)\s*TB\s*SSD", r"(\d+)\s*TB", r"(\d+)\s*GB\s*SSD",
+                r"(\d+)\s*GB\s*NVMe", r"(\d+)\s*GB\s*M\.2"]:
         m = re.search(pat, text, re.IGNORECASE)
         if m:
             v = int(m.group(1))
@@ -127,26 +180,25 @@ def extract_storage(text: str) -> int:
 
 
 def extract_screen(text: str) -> float:
-    """Extract screen size in inches."""
-    m = re.search(r'(\d+[.,]\d+)\s*["\']|(\d+[.,]\d+)\s*inch|(\d+[.,]\d+)\s*"', text, re.IGNORECASE)
-    if m:
-        raw = next(x for x in m.groups() if x)
-        try:
-            return float(raw.replace(',', '.'))
-        except Exception:
-            pass
-    # also match "15" or "17" standalone
-    m2 = re.search(r'\b(13|14|15|16|17|18)\b', text)
-    if m2:
-        return float(m2.group(1))
+    for pat in [
+        r'(\d{2}[.,]\d)\s*(?:inch|"|\s*inch)',
+        r'(\d{2})[.,]\d\s*(?:inch|")',
+        r'\b(13|14|15|16|17|18)\b.*?(?:inch|")',
+    ]:
+        m = re.search(pat, text, re.IGNORECASE)
+        if m:
+            try:
+                return float(m.group(1).replace(",", "."))
+            except Exception:
+                pass
     return 0.0
 
 
 def extract_cpu(text: str) -> str:
     t = text.upper()
-    if "I9" in t or "CORE I9" in t: return "i9"
-    if "I7" in t or "CORE I7" in t: return "i7"
-    if "I5" in t or "CORE I5" in t: return "i5"
+    if "I9" in t: return "i9"
+    if "I7" in t: return "i7"
+    if "I5" in t: return "i5"
     if "RYZEN 9" in t: return "Ryzen 9"
     if "RYZEN 7" in t: return "Ryzen 7"
     if "RYZEN 5" in t: return "Ryzen 5"
@@ -160,19 +212,42 @@ def map_condition(raw: str) -> str:
     return "new"
 
 
+def build_params(query: str, max_price: int = 5000) -> dict:
+    return {
+        "query": query,
+        "categoryId": "31",        # Computers > Laptops
+        "condition": "new,as-good-as-new",
+        "priceFrom": "100",
+        "priceTo": str(max_price),
+        "sortBy": "SORT_INDEX",
+        "sortOrder": "DECREASING",
+        "offset": 0,
+        "limit": 30,
+        "searchInTitleAndDescription": "true",
+        "attributes": "",
+    }
+
+
 def parse_listing(item: dict) -> Optional[dict]:
     try:
-        item_id    = str(item.get("itemId", ""))
-        title      = (item.get("title", "") or "").strip()
-        price_info = item.get("priceInfo", {})
-        price      = (price_info.get("priceCents", 0) or 0) / 100
+        item_id     = str(item.get("itemId", ""))
+        title       = (item.get("title", "") or "").strip()
+        price_info  = item.get("priceInfo", {})
+        price       = (price_info.get("priceCents", 0) or 0) / 100
+        description = (item.get("description", "") or "")
 
         if not price or price < 100:
             return None
 
-        description = (item.get("description", "") or "")
-        full_text   = title + " " + description
-        gpu         = extract_gpu(full_text)
+        full_text = title + " " + description
+
+        # ── Laptop check ───────────────────────────────────────────────────
+        if not is_laptop(title, description):
+            logger.debug(f"Skip non-laptop: {title[:50]}")
+            return None
+
+        # ── GPU check ──────────────────────────────────────────────────────
+        gpu = extract_gpu(full_text)
         if not gpu:
             return None
 
@@ -184,7 +259,10 @@ def parse_listing(item: dict) -> Optional[dict]:
         seller        = item.get("seller", {})
         images        = item.get("pictures", [])
         image_url     = images[0].get("largeUrl", "") if images else ""
-        listed_date   = item.get("date", "") or ""
+
+        # Parse date safely
+        raw_date    = item.get("date") or item.get("sortDate") or ""
+        listed_date = parse_listed_date(raw_date)
 
         return {
             "item_id":      item_id,
@@ -211,7 +289,7 @@ def parse_listing(item: dict) -> Optional[dict]:
 
 
 async def fetch_query(query: str, max_price: int, client: httpx.AsyncClient) -> list[dict]:
-    await asyncio.sleep(random.uniform(2.5, 6))
+    await asyncio.sleep(random.uniform(2.5, 6.0))
     try:
         resp = await client.get(
             SEARCH_URL,
@@ -221,7 +299,7 @@ async def fetch_query(query: str, max_price: int, client: httpx.AsyncClient) -> 
         )
         resp.raise_for_status()
         items = resp.json().get("listings", [])
-        logger.info(f"Query '{query}': {len(items)} items")
+        logger.info(f"Query '{query}': {len(items)} raw items")
         return [p for item in items if (p := parse_listing(item))]
     except Exception as e:
         logger.error(f"Fetch error '{query}': {e}")
@@ -230,11 +308,11 @@ async def fetch_query(query: str, max_price: int, client: httpx.AsyncClient) -> 
 
 async def scrape_all(max_price: int = 5000) -> list[dict]:
     if is_night_time():
-        logger.info("Night pause — skipping scrape")
+        logger.info("Night pause — skipping")
         return []
 
-    all_listings = []
-    seen_ids     = set()
+    all_listings: list[dict] = []
+    seen_ids: set[str] = set()
 
     async with httpx.AsyncClient(follow_redirects=True) as client:
         for query in SEARCH_QUERIES:
@@ -244,5 +322,5 @@ async def scrape_all(max_price: int = 5000) -> list[dict]:
                     seen_ids.add(item["item_id"])
                     all_listings.append(item)
 
-    logger.info(f"Scraped {len(all_listings)} unique listings")
+    logger.info(f"Scraped {len(all_listings)} unique laptop listings")
     return all_listings
