@@ -1,6 +1,5 @@
 """
-Worker — scrape, evaluate, notify, mark inactive, price drops.
-Reads ALLOWED_GPUS from DB settings on every cycle so filter changes apply immediately.
+Worker — reads settings from DB every cycle so GPU filter applies immediately.
 """
 
 import asyncio
@@ -14,7 +13,7 @@ from database import (
     init_db, upsert_deal, get_pending_notifications,
     mark_notified, log_scrape, cleanup_old_records,
     mark_inactive, get_price_dropped_deals, mark_drop_notified,
-    load_settings, save_settings
+    load_settings
 )
 from telegram_bot import (
     send_deal_alert, send_watch_alert,
@@ -35,7 +34,9 @@ def handle_signal(*_):
 
 
 def apply_settings(s: dict):
-    if not s: return
+    """Apply settings dict to deal_engine module variables."""
+    if not s:
+        return
     de.MIN_DISCOUNT_PCT   = float(s.get("min_discount",   de.MIN_DISCOUNT_PCT))
     de.WATCH_DISCOUNT_PCT = float(s.get("watch_discount", de.WATCH_DISCOUNT_PCT))
     de.MIN_PROFIT_EUR     = float(s.get("min_profit",     de.MIN_PROFIT_EUR))
@@ -46,20 +47,24 @@ def apply_settings(s: dict):
     de.MIN_SCREEN         = float(s.get("min_screen",     de.MIN_SCREEN))
     de.MAX_SCREEN         = float(s.get("max_screen",     de.MAX_SCREEN))
     gpus = s.get("gpus", [])
-    de.ALLOWED_GPUS       = gpus if gpus else list(mp.known_gpus())
-    de.ALLOWED_CPUS       = s.get("cpus", [])
+    # Only override if user explicitly selected GPUs
+    if gpus:
+        de.ALLOWED_GPUS = list(gpus)
+    else:
+        de.ALLOWED_GPUS = list(mp.known_gpus())
+    de.ALLOWED_CPUS = s.get("cpus", [])
 
 
 async def run_cycle():
     global _cycle
     _cycle += 1
 
-    # Re-read settings from DB every cycle so changes apply immediately
+    # Reload settings from DB every cycle — ensures GPU filter changes apply immediately
     saved = load_settings()
     if saved:
         apply_settings(saved)
 
-    logger.info(f"▶ Cycle {_cycle} — GPUs: {de.ALLOWED_GPUS[:4]}...")
+    logger.info(f"▶ Cycle {_cycle} — allowed GPUs: {de.ALLOWED_GPUS}")
 
     listings = await scrape_all(max_price=int(de.MAX_PRICE_EUR))
 
@@ -70,7 +75,7 @@ async def run_cycle():
     mp.update_from_listings(listings)
 
     new_c = deal_c = watch_c = 0
-    seen_ids: set[str] = set()
+    seen_ids: set = set()
 
     for l in listings:
         seen_ids.add(l["item_id"])
@@ -87,20 +92,16 @@ async def run_cycle():
                 watch_c += 1
                 logger.info(f"WATCH: {d['title'][:40]} €{d['price']} -{d['discount_percent']}%")
 
-    # Mark listings not seen as inactive
     mark_inactive(seen_ids)
-
     log_scrape(len(listings), new_c, deal_c, watch_c)
     logger.info(f"Done: {len(listings)} scraped, {new_c} new, {deal_c} deals, {watch_c} watches")
 
-    # New deal/watch notifications
     for deal in get_pending_notifications():
         ok = await send_deal_alert(deal) if deal["is_deal"] else await send_watch_alert(deal)
         if ok:
             mark_notified(deal["item_id"])
         await asyncio.sleep(0.5)
 
-    # Price drop notifications
     for deal in get_price_dropped_deals():
         ok = await send_price_drop_alert(deal)
         if ok:
@@ -124,7 +125,7 @@ async def main():
     saved = load_settings()
     if saved:
         apply_settings(saved)
-        logger.info("Settings loaded from DB")
+        logger.info(f"Settings loaded — GPUs: {de.ALLOWED_GPUS}")
 
     await notify_startup()
     logger.info(f"Worker started — interval {SCRAPE_INTERVAL}s")
