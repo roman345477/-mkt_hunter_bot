@@ -1,18 +1,17 @@
 """
-Marktplaats scraper — laptop-only filter, better date parsing, anti-block.
+Marktplaats scraper — strict laptop-only, robust date parsing.
 """
 
 import re
 import random
 import logging
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional
 import httpx
 
 logger = logging.getLogger(__name__)
 
-# ── GPU keyword map ───────────────────────────────────────────────────────────
 GPU_KEYWORDS = {
     "RTX 5090":    ["5090"],
     "RTX 5080":    ["5080"],
@@ -36,21 +35,26 @@ GPU_KEYWORDS = {
     "GTX 1650":    ["1650"],
 }
 
-# ── Words that MUST appear to confirm it's a laptop ──────────────────────────
+# Must contain at least one of these to be a laptop
 LAPTOP_KEYWORDS = [
     "laptop", "notebook", "gaming laptop", "gaming notebook",
-    "laptops", "portable", "15.6", "15,6", "17.3", "17,3",
+    "laptops", "15.6", "15,6", "17.3", "17,3",
     "14 inch", "15 inch", "16 inch", "17 inch",
-    "14\"", "15\"", "16\"", "17\"",
+    '14"', '15"', '16"', '17"',
 ]
 
-# ── Words that immediately disqualify the listing ────────────────────────────
+# Any of these = immediately disqualify
 EXCLUDE_KEYWORDS = [
     "ps5", "playstation", "xbox", "nintendo", "console",
-    "desktop", "pc tower", "gaming pc", "gpu card", "videokaart",
-    "grafische kaart", "graphics card", "mini pc", "nuc",
-    "ipad", "tablet", "telefoon", "smartphone",
-    "docking", "dock station", "monitor", "scherm",
+    "desktop", "pc tower", "gaming pc",
+    # GPU accessories
+    "egpu", "e-gpu", "external gpu", "videokaart", "grafische kaart",
+    "graphics card", "gpu adapter", "usb4 gpu", "thunderbolt gpu",
+    "gpu card", "adt-", "gpu box",
+    # Other devices
+    "mini pc", "nuc", "ipad", "tablet",
+    "telefoon", "smartphone", "monitor", "scherm",
+    "docking", "dock station",
 ]
 
 SEARCH_QUERIES = [
@@ -91,64 +95,57 @@ def get_headers() -> dict:
 
 
 def is_laptop(title: str, description: str) -> bool:
-    """Returns True only if listing is clearly a laptop."""
     combined = (title + " " + description).lower()
 
-    # Check exclusions first
+    # Hard exclusions first
     for kw in EXCLUDE_KEYWORDS:
         if kw in combined:
+            logger.debug(f"Excluded by '{kw}': {title[:50]}")
             return False
 
-    # Must contain at least one laptop keyword
+    # Must have laptop keyword
     for kw in LAPTOP_KEYWORDS:
         if kw in combined:
             return True
 
-    # GPU model alone in title without laptop context = likely GPU card
-    # Allow if title is long enough (laptops have longer titles)
-    if len(title) > 25:
+    # Long title without exclusions might still be laptop
+    if len(title) > 30:
         return True
 
     return False
 
 
-def parse_listed_date(raw) -> str:
+def parse_listed_date(item: dict) -> str:
     """
-    Robustly parse listed_date from various Marktplaats formats.
-    Returns ISO string or empty string.
+    Try multiple fields for listing date.
+    Marktplaats uses 'date', 'sortDate', or timestamp in milliseconds.
     """
-    if not raw:
-        return ""
-    try:
-        # Unix timestamp in milliseconds (most common)
-        if isinstance(raw, (int, float)):
-            ts = raw / 1000 if raw > 1e10 else raw
-            return datetime.utcfromtimestamp(ts).isoformat()
-
-        raw_str = str(raw).strip()
-
-        # Already looks like ISO
-        if "T" in raw_str or "-" in raw_str:
-            # Remove timezone info for consistency
-            clean = raw_str.replace("Z", "").split("+")[0].split(".")[0]
-            datetime.fromisoformat(clean)  # validate
-            return clean
-
-        # Numeric string = milliseconds
-        if raw_str.isdigit():
-            ts = int(raw_str)
-            if ts > 1e12:
-                ts = ts / 1000
-            return datetime.utcfromtimestamp(ts).isoformat()
-
-        return ""
-    except Exception:
-        return ""
+    for field in ["date", "sortDate", "startDate", "timestamp"]:
+        raw = item.get(field)
+        if not raw:
+            continue
+        try:
+            if isinstance(raw, (int, float)):
+                ts = raw / 1000 if raw > 1e10 else raw
+                return datetime.utcfromtimestamp(ts).isoformat()
+            s = str(raw).strip()
+            if s.isdigit():
+                n = int(s)
+                ts = n / 1000 if n > 1e10 else n
+                return datetime.utcfromtimestamp(ts).isoformat()
+            # ISO string
+            clean = s.replace("Z", "").split("+")[0]
+            if "T" in clean or "-" in clean:
+                # validate
+                datetime.fromisoformat(clean[:19])
+                return clean[:19]
+        except Exception:
+            continue
+    return ""
 
 
 def extract_gpu(text: str) -> Optional[str]:
     t = text.upper()
-    # Check Ti variants first (more specific)
     for gpu, keywords in GPU_KEYWORDS.items():
         for kw in keywords:
             if kw.upper() in t:
@@ -181,8 +178,8 @@ def extract_storage(text: str) -> int:
 
 def extract_screen(text: str) -> float:
     for pat in [
-        r'(\d{2}[.,]\d)\s*(?:inch|"|\s*inch)',
-        r'(\d{2})[.,]\d\s*(?:inch|")',
+        r'(\d{2}[.,]\d)\s*(?:inch|")',
+        r'\b(13|14|15|16|17|18)[.,]\d\b',
         r'\b(13|14|15|16|17|18)\b.*?(?:inch|")',
     ]:
         m = re.search(pat, text, re.IGNORECASE)
@@ -215,7 +212,7 @@ def map_condition(raw: str) -> str:
 def build_params(query: str, max_price: int = 5000) -> dict:
     return {
         "query": query,
-        "categoryId": "31",        # Computers > Laptops
+        "categoryId": "31",
         "condition": "new,as-good-as-new",
         "priceFrom": "100",
         "priceTo": str(max_price),
@@ -239,14 +236,11 @@ def parse_listing(item: dict) -> Optional[dict]:
         if not price or price < 100:
             return None
 
-        full_text = title + " " + description
-
-        # ── Laptop check ───────────────────────────────────────────────────
+        # Laptop check
         if not is_laptop(title, description):
-            logger.debug(f"Skip non-laptop: {title[:50]}")
             return None
 
-        # ── GPU check ──────────────────────────────────────────────────────
+        full_text = title + " " + description
         gpu = extract_gpu(full_text)
         if not gpu:
             return None
@@ -259,10 +253,7 @@ def parse_listing(item: dict) -> Optional[dict]:
         seller        = item.get("seller", {})
         images        = item.get("pictures", [])
         image_url     = images[0].get("largeUrl", "") if images else ""
-
-        # Parse date safely
-        raw_date    = item.get("date") or item.get("sortDate") or ""
-        listed_date = parse_listed_date(raw_date)
+        listed_date   = parse_listed_date(item)
 
         return {
             "item_id":      item_id,
@@ -300,7 +291,9 @@ async def fetch_query(query: str, max_price: int, client: httpx.AsyncClient) -> 
         resp.raise_for_status()
         items = resp.json().get("listings", [])
         logger.info(f"Query '{query}': {len(items)} raw items")
-        return [p for item in items if (p := parse_listing(item))]
+        results = [p for item in items if (p := parse_listing(item))]
+        logger.info(f"Query '{query}': {len(results)} after laptop filter")
+        return results
     except Exception as e:
         logger.error(f"Fetch error '{query}': {e}")
         return []
