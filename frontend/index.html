@@ -437,24 +437,32 @@ function renderWatches(){
 }
 
 function fmtListed(raw){
-  if(!raw||raw==='') return '';
+  if(!raw||raw===''||raw==='null'||raw==='undefined') return '';
   try{
     let dt;
     const s=String(raw).trim();
-    if(/^\d+$/.test(s)){
-      // Unix timestamp — ms if >1e12, else seconds
+    if(/^\d{10,}$/.test(s)){
       const n=parseInt(s);
       dt=new Date(n>1e12?n:n*1000);
+    } else if(s.includes('T')||s.includes('-')){
+      // ISO format — strip timezone, take first 19 chars
+      const clean=s.replace('Z','').split('+')[0].split('.')[0];
+      dt=new Date(clean+'Z');
+      if(isNaN(dt.getTime())) dt=new Date(clean);
     } else {
-      dt=new Date(s.replace(' ','T').replace(/\+.*$/,'').replace(/\.\d+$/,''));
+      dt=new Date(s);
     }
-    if(isNaN(dt.getTime())) return '';
-    const now=new Date(), dh=Math.floor((now-dt)/3600000);
+    if(!dt||isNaN(dt.getTime())) return '';
+    // Sanity check — date should be between 2020 and now+1day
+    const now=new Date();
+    if(dt.getFullYear()<2020||dt>new Date(now.getTime()+86400000)) return '';
+    const dh=Math.floor((now-dt)/3600000);
     if(dh<1) return 'Щойно';
     if(dh<24) return dh+'г тому';
     const dd=Math.floor(dh/24);
+    if(dd===1) return 'Вчора';
     if(dd<7) return dd+'д тому';
-    return dt.toLocaleDateString('uk',{day:'numeric',month:'short'});
+    return dt.toLocaleDateString('uk',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
   }catch(e){return '';}
 }
 
