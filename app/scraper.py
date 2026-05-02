@@ -117,30 +117,80 @@ def is_laptop(title: str, description: str) -> bool:
 
 def parse_listed_date(item: dict) -> str:
     """
-    Try multiple fields for listing date.
-    Marktplaats uses 'date', 'sortDate', or timestamp in milliseconds.
+    Parse listing date from Marktplaats API.
+    Marktplaats returns date in multiple formats:
+    - ISO string: "2026-04-25T14:30:00+02:00"
+    - Unix ms: 1745584200000
+    - Dutch relative: "Vandaag", "Gisteren"
+    - Dutch date: "25 apr."
     """
-    for field in ["date", "sortDate", "startDate", "timestamp"]:
+    # Try numeric timestamp first (most reliable)
+    for field in ["sortDate", "date", "startDate", "timestamp", "priorityDate"]:
         raw = item.get(field)
-        if not raw:
+        if raw is None:
             continue
         try:
-            if isinstance(raw, (int, float)):
+            # Numeric timestamp
+            if isinstance(raw, (int, float)) and raw > 0:
                 ts = raw / 1000 if raw > 1e10 else raw
-                return datetime.utcfromtimestamp(ts).isoformat()
+                dt = datetime.utcfromtimestamp(ts)
+                if 2020 <= dt.year <= 2030:
+                    return dt.isoformat()
+                continue
+
             s = str(raw).strip()
-            if s.isdigit():
+            if not s or s in ("null", "undefined", "None"):
+                continue
+
+            # Numeric string
+            if s.isdigit() and len(s) >= 10:
                 n = int(s)
                 ts = n / 1000 if n > 1e10 else n
-                return datetime.utcfromtimestamp(ts).isoformat()
-            # ISO string
-            clean = s.replace("Z", "").split("+")[0]
-            if "T" in clean or "-" in clean:
-                # validate
-                datetime.fromisoformat(clean[:19])
-                return clean[:19]
+                dt = datetime.utcfromtimestamp(ts)
+                if 2020 <= dt.year <= 2030:
+                    return dt.isoformat()
+                continue
+
+            # ISO string with timezone
+            if "T" in s or (len(s) > 8 and "-" in s):
+                clean = s.replace("Z", "").split("+")[0].split(".")[0]
+                try:
+                    dt = datetime.fromisoformat(clean)
+                    if 2020 <= dt.year <= 2030:
+                        return dt.isoformat()
+                except Exception:
+                    pass
+                continue
+
+            # Dutch relative date
+            now = datetime.utcnow()
+            sl = s.lower()
+            if sl in ("vandaag", "today", "aujourd'hui"):
+                return now.replace(hour=12, minute=0, second=0).isoformat()
+            if sl in ("gisteren", "yesterday", "hier"):
+                from datetime import timedelta
+                return (now - timedelta(days=1)).replace(hour=12, minute=0, second=0).isoformat()
+
+            # Dutch date like "25 apr." or "25 apr. 2026"
+            DUTCH_MONTHS = {
+                "jan": 1, "feb": 2, "mrt": 3, "apr": 4, "mei": 5, "jun": 6,
+                "jul": 7, "aug": 8, "sep": 9, "okt": 10, "nov": 11, "dec": 12
+            }
+            import re
+            m = re.match(r"(\d{1,2})\s+(\w{3})\.?\s*(\d{4})?", sl)
+            if m:
+                day = int(m.group(1))
+                mon_str = m.group(2)[:3]
+                year = int(m.group(3)) if m.group(3) else now.year
+                month = DUTCH_MONTHS.get(mon_str)
+                if month:
+                    dt = datetime(year, month, day, 12, 0, 0)
+                    if 2020 <= dt.year <= 2030:
+                        return dt.isoformat()
+
         except Exception:
             continue
+
     return ""
 
 
