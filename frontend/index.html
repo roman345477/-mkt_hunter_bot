@@ -445,7 +445,6 @@ function fmtListed(raw){
       const n=parseInt(s);
       dt=new Date(n>1e12?n:n*1000);
     } else if(s.includes('T')||s.includes('-')){
-      // ISO format — strip timezone, take first 19 chars
       const clean=s.replace('Z','').split('+')[0].split('.')[0];
       dt=new Date(clean+'Z');
       if(isNaN(dt.getTime())) dt=new Date(clean);
@@ -453,7 +452,6 @@ function fmtListed(raw){
       dt=new Date(s);
     }
     if(!dt||isNaN(dt.getTime())) return '';
-    // Sanity check — date should be between 2020 and now+1day
     const now=new Date();
     if(dt.getFullYear()<2020||dt>new Date(now.getTime()+86400000)) return '';
     const dh=Math.floor((now-dt)/3600000);
