@@ -1,10 +1,12 @@
 """
-Deal Engine — uses market_prices module, configurable filters, all GPU support.
+Deal Engine — configurable filters, all GPU support.
+ALLOWED_GPUS = None means ALL gpus allowed.
+ALLOWED_GPUS = ["RTX 4060"] means ONLY that GPU.
 """
 
 import logging
 from dataclasses import dataclass, asdict
-from typing import Optional
+from typing import Optional, List
 import market_prices as mp
 
 logger = logging.getLogger(__name__)
@@ -18,7 +20,7 @@ MEDIUM_LIQUIDITY_BRANDS = [
     "hp omen", "msi katana", "msi thin",
 ]
 
-# ── Configurable settings (updated via /settings API) ────────────────────────
+# ── Configurable settings ─────────────────────────────────────────────────────
 MIN_DISCOUNT_PCT   = 15.0
 WATCH_DISCOUNT_PCT = 10.0
 MIN_PROFIT_EUR     = 100.0
@@ -28,9 +30,10 @@ MIN_RAM            = 16
 MIN_STORAGE        = 0
 MIN_SCREEN         = 0.0
 MAX_SCREEN         = 0.0
-ALLOWED_GPUS       = list(mp.known_gpus())
-ALLOWED_CPUS       = []   # empty = all CPUs allowed
-MIN_DESC_LEN       = 30
+# None = all GPUs allowed; list = only these GPUs
+ALLOWED_GPUS: Optional[List[str]] = None
+ALLOWED_CPUS: List[str] = []
+MIN_DESC_LEN = 30
 
 
 @dataclass
@@ -77,27 +80,44 @@ def evaluate(listing: dict) -> Optional[DealEvaluation]:
     desc    = listing.get("description", "") or ""
     title   = listing.get("title", "") or ""
 
-    # ── Hard filters ────────────────────────────────────────────────────────
+    # Price filter
     if price <= MIN_PRICE_EUR or price > MAX_PRICE_EUR:
         return None
-    if gpu not in ALLOWED_GPUS:
+
+    # GPU must be known
+    if gpu not in mp.known_gpus():
         return None
+
+    # GPU filter — None means all allowed
+    if ALLOWED_GPUS is not None and gpu not in ALLOWED_GPUS:
+        return None
+
+    # RAM filter
     if ram and MIN_RAM and ram < MIN_RAM:
         return None
+
+    # Storage filter
     if storage and MIN_STORAGE and storage < MIN_STORAGE:
         return None
+
+    # Screen filter
     if screen and MIN_SCREEN and screen < MIN_SCREEN:
         return None
     if screen and MAX_SCREEN and screen > MAX_SCREEN:
         return None
+
+    # CPU filter — empty = all
     if ALLOWED_CPUS and cpu and cpu not in ALLOWED_CPUS:
         return None
+
+    # Condition
     if cond not in ("new", "like_new"):
         return None
+
+    # Minimum description
     if len(desc) < MIN_DESC_LEN and len(title) < 20:
         return None
 
-    # ── Pricing ─────────────────────────────────────────────────────────────
     prices       = mp.get(gpu)
     market_price = prices["market"]
     resale_price = prices["resale"]
