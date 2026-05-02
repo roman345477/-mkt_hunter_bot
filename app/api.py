@@ -1,5 +1,5 @@
 """
-FastAPI — deals, settings, activity, market prices.
+FastAPI — deals, settings (persistent), activity, stats, market prices.
 """
 
 import logging
@@ -29,21 +29,6 @@ if not FRONTEND_DIR.exists():
     FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 
 
-def _apply(s: dict):
-    de.MIN_DISCOUNT_PCT   = float(s.get("min_discount",   de.MIN_DISCOUNT_PCT))
-    de.WATCH_DISCOUNT_PCT = float(s.get("watch_discount", de.WATCH_DISCOUNT_PCT))
-    de.MIN_PROFIT_EUR     = float(s.get("min_profit",     de.MIN_PROFIT_EUR))
-    de.MIN_PRICE_EUR      = float(s.get("min_price",      de.MIN_PRICE_EUR))
-    de.MAX_PRICE_EUR      = float(s.get("max_price",      de.MAX_PRICE_EUR))
-    de.MIN_RAM            = int(s.get("min_ram",          de.MIN_RAM))
-    de.MIN_STORAGE        = int(s.get("min_storage",      de.MIN_STORAGE))
-    de.MIN_SCREEN         = float(s.get("min_screen",     de.MIN_SCREEN))
-    de.MAX_SCREEN         = float(s.get("max_screen",     de.MAX_SCREEN))
-    de.ALLOWED_CPUS       = s.get("cpus", [])
-    gpus = s.get("gpus", [])
-    de.ALLOWED_GPUS       = list(gpus) if gpus else None
-
-
 def _current_settings() -> dict:
     return {
         "min_discount":   de.MIN_DISCOUNT_PCT,
@@ -55,7 +40,7 @@ def _current_settings() -> dict:
         "min_storage":    de.MIN_STORAGE,
         "min_screen":     de.MIN_SCREEN,
         "max_screen":     de.MAX_SCREEN,
-        "gpus":           list(de.ALLOWED_GPUS) if de.ALLOWED_GPUS else [],
+        "gpus":           list(de.ALLOWED_GPUS),
         "cpus":           list(de.ALLOWED_CPUS),
     }
 
@@ -77,11 +62,27 @@ class Settings(BaseModel):
 @app.on_event("startup")
 async def startup():
     init_db()
+    # Load persisted settings
     saved = load_settings()
     if saved:
         _apply(saved)
-        logger.info(f"Settings loaded — GPUs: {de.ALLOWED_GPUS}")
+        logger.info("Settings loaded from DB")
     logger.info("API ready")
+
+
+def _apply(s: dict):
+    de.MIN_DISCOUNT_PCT   = s.get("min_discount",   de.MIN_DISCOUNT_PCT)
+    de.WATCH_DISCOUNT_PCT = s.get("watch_discount", de.WATCH_DISCOUNT_PCT)
+    de.MIN_PROFIT_EUR     = s.get("min_profit",     de.MIN_PROFIT_EUR)
+    de.MIN_PRICE_EUR      = s.get("min_price",      de.MIN_PRICE_EUR)
+    de.MAX_PRICE_EUR      = s.get("max_price",      de.MAX_PRICE_EUR)
+    de.MIN_RAM            = s.get("min_ram",         de.MIN_RAM)
+    de.MIN_STORAGE        = s.get("min_storage",     de.MIN_STORAGE)
+    de.MIN_SCREEN         = s.get("min_screen",      de.MIN_SCREEN)
+    de.MAX_SCREEN         = s.get("max_screen",      de.MAX_SCREEN)
+    gpus = s.get("gpus", [])
+    de.ALLOWED_GPUS       = gpus if gpus else list(mp.known_gpus())
+    de.ALLOWED_CPUS       = s.get("cpus", [])
 
 
 @app.get("/health")
@@ -98,22 +99,22 @@ async def get_settings_ep():
 async def update_settings(s: Settings):
     d = s.dict()
     _apply(d)
-    save_settings(d)
-    logger.info(f"Settings saved — GPUs: {de.ALLOWED_GPUS}")
+    save_settings(d)  # persist to DB
+    logger.info(f"Settings saved: {d}")
     return {"status": "ok", "settings": _current_settings()}
 
 
 @app.get("/deals")
 async def deals_endpoint(
-    limit:            int   = Query(50, le=200),
-    offset:           int   = Query(0, ge=0),
-    min_profit:       float = Query(0),
-    gpu:              Optional[str] = Query(None),
-    max_price:        float = Query(999999),
-    sort_by:          str   = Query("score"),
-    all:              bool  = Query(False),
-    include_watch:    bool  = Query(False),
-    include_inactive: bool  = Query(False),
+    limit:         int   = Query(50, le=200),
+    offset:        int   = Query(0, ge=0),
+    min_profit:    float = Query(0),
+    gpu:           Optional[str] = Query(None),
+    max_price:     float = Query(999999),
+    sort_by:       str   = Query("score"),
+    all:           bool  = Query(False),
+    include_watch: bool  = Query(False),
+    include_inactive: bool = Query(False),
 ):
     rows = get_deals(
         only_deals    = not all,
@@ -150,7 +151,8 @@ async def gpus_list():
 
 @app.get("/deals/{item_id}")
 async def get_deal(item_id: str):
-    rows = get_deals(only_deals=False, include_watch=True, only_active=False, limit=500)
+    rows = get_deals(only_deals=False, include_watch=True,
+                     only_active=False, limit=500)
     match = next((r for r in rows if r["item_id"] == item_id), None)
     if not match:
         raise HTTPException(404, "Not found")
@@ -171,3 +173,49 @@ async def root():
     if index.exists():
         return FileResponse(str(index))
     return {"message": "Marktplaats Hunter v2", "docs": "/docs"}
+
+
+@app.get("/debug/listing")
+async def debug_listing():
+    """Show raw fields from first Marktplaats listing to debug date field."""
+    import httpx, random
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36",
+        "Accept": "application/json",
+        "Accept-Language": "nl-NL,nl;q=0.9",
+        "Referer": "https://www.marktplaats.nl/",
+    }
+    params = {
+        "query": "gaming laptop RTX 4060",
+        "categoryId": "31",
+        "condition": "new,as-good-as-new",
+        "priceFrom": "200",
+        "priceTo": "2000",
+        "sortBy": "SORT_INDEX",
+        "sortOrder": "DECREASING",
+        "offset": 0,
+        "limit": 3,
+        "searchInTitleAndDescription": "true",
+        "attributes": "",
+    }
+    async with httpx.AsyncClient(follow_redirects=True) as client:
+        r = await client.get(
+            "https://www.marktplaats.nl/lrp/api/search",
+            params=params, headers=headers, timeout=15
+        )
+    items = r.json().get("listings", [])
+    if not items:
+        return {"error": "no items"}
+    item = items[0]
+    # Return all top-level fields and their values
+    return {
+        "title": item.get("title"),
+        "price_cents": item.get("priceInfo", {}).get("priceCents"),
+        "date": item.get("date"),
+        "sortDate": item.get("sortDate"),
+        "startDate": item.get("startDate"),
+        "timestamp": item.get("timestamp"),
+        "priorityDate": item.get("priorityDate"),
+        "all_keys": list(item.keys()),
+        "raw_sample": {k: item[k] for k in list(item.keys())[:20]},
+    }
