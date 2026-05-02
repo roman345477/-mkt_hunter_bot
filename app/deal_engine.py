@@ -84,12 +84,12 @@ def evaluate(listing: dict) -> Optional[DealEvaluation]:
     if price <= MIN_PRICE_EUR or price > MAX_PRICE_EUR:
         return None
 
-    # GPU must be known
-    if gpu not in mp.known_gpus():
-        return None
-
     # GPU filter — None means all allowed
     if ALLOWED_GPUS is not None and gpu not in ALLOWED_GPUS:
+        return None
+
+    # GPU must be in known list
+    if gpu not in mp.known_gpus():
         return None
 
     # RAM filter
