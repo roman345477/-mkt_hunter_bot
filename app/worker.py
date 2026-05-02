@@ -34,6 +34,7 @@ def handle_signal(*_):
 
 
 def apply_settings(s: dict):
+    """Apply settings dict to deal_engine module variables."""
     if not s:
         return
     de.MIN_DISCOUNT_PCT   = float(s.get("min_discount",   de.MIN_DISCOUNT_PCT))
@@ -45,30 +46,25 @@ def apply_settings(s: dict):
     de.MIN_STORAGE        = int(s.get("min_storage",      de.MIN_STORAGE))
     de.MIN_SCREEN         = float(s.get("min_screen",     de.MIN_SCREEN))
     de.MAX_SCREEN         = float(s.get("max_screen",     de.MAX_SCREEN))
-    de.ALLOWED_CPUS       = s.get("cpus", [])
-
     gpus = s.get("gpus", [])
+    # Only override if user explicitly selected GPUs
     if gpus:
-        # User selected specific GPUs — filter strictly
         de.ALLOWED_GPUS = list(gpus)
-        logger.info(f"GPU filter ON: {de.ALLOWED_GPUS}")
     else:
-        # Empty = all GPUs allowed
-        de.ALLOWED_GPUS = None
-        logger.info("GPU filter OFF: all GPUs allowed")
+        de.ALLOWED_GPUS = list(mp.known_gpus())
+    de.ALLOWED_CPUS = s.get("cpus", [])
 
 
 async def run_cycle():
     global _cycle
     _cycle += 1
 
-    # Reload settings every cycle
+    # Reload settings from DB every cycle — ensures GPU filter changes apply immediately
     saved = load_settings()
     if saved:
         apply_settings(saved)
 
-    gpu_info = de.ALLOWED_GPUS if de.ALLOWED_GPUS else "ALL"
-    logger.info(f"▶ Cycle {_cycle} — GPUs: {gpu_info}")
+    logger.info(f"▶ Cycle {_cycle} — allowed GPUs: {de.ALLOWED_GPUS}")
 
     listings = await scrape_all(max_price=int(de.MAX_PRICE_EUR))
 
@@ -129,6 +125,7 @@ async def main():
     saved = load_settings()
     if saved:
         apply_settings(saved)
+        logger.info(f"Settings loaded — GPUs: {de.ALLOWED_GPUS}")
 
     await notify_startup()
     logger.info(f"Worker started — interval {SCRAPE_INTERVAL}s")
