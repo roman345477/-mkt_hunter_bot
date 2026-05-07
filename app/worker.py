@@ -1,5 +1,5 @@
 """
-Worker — reads settings from DB every cycle so GPU filter applies immediately.
+Worker — scrape loop + Telegram command polling in background.
 """
 
 import asyncio
@@ -17,8 +17,10 @@ from database import (
 )
 from telegram_bot import (
     send_deal_alert, send_watch_alert,
-    send_price_drop_alert, notify_startup
+    send_price_drop_alert, notify_startup,
+    start_polling, is_paused
 )
+import telegram_bot as tb
 import market_prices as mp
 import deal_engine as de
 
@@ -34,7 +36,6 @@ def handle_signal(*_):
 
 
 def apply_settings(s: dict):
-    """Apply settings dict to deal_engine module variables."""
     if not s:
         return
     de.MIN_DISCOUNT_PCT   = float(s.get("min_discount",   de.MIN_DISCOUNT_PCT))
@@ -46,25 +47,33 @@ def apply_settings(s: dict):
     de.MIN_STORAGE        = int(s.get("min_storage",      de.MIN_STORAGE))
     de.MIN_SCREEN         = float(s.get("min_screen",     de.MIN_SCREEN))
     de.MAX_SCREEN         = float(s.get("max_screen",     de.MAX_SCREEN))
+    de.ALLOWED_CPUS       = s.get("cpus", [])
     gpus = s.get("gpus", [])
-    # Only override if user explicitly selected GPUs
     if gpus:
         de.ALLOWED_GPUS = list(gpus)
+        logger.info(f"GPU filter ON: {de.ALLOWED_GPUS}")
     else:
-        de.ALLOWED_GPUS = list(mp.known_gpus())
-    de.ALLOWED_CPUS = s.get("cpus", [])
+        de.ALLOWED_GPUS = None
+        logger.info("GPU filter OFF: all GPUs allowed")
 
 
 async def run_cycle():
     global _cycle
     _cycle += 1
 
-    # Reload settings from DB every cycle — ensures GPU filter changes apply immediately
+    # Reload settings every cycle
     saved = load_settings()
     if saved:
         apply_settings(saved)
 
-    logger.info(f"▶ Cycle {_cycle} — allowed GPUs: {de.ALLOWED_GPUS}")
+    # Skip scraping if paused
+    if tb.is_paused:
+        logger.info(f"▶ Cycle {_cycle} — PAUSED, skipping scrape")
+        log_scrape(0, 0, 0, 0)
+        return
+
+    gpu_info = de.ALLOWED_GPUS if de.ALLOWED_GPUS else "ALL"
+    logger.info(f"▶ Cycle {_cycle} — GPUs: {gpu_info}")
 
     listings = await scrape_all(max_price=int(de.MAX_PRICE_EUR))
 
@@ -96,12 +105,14 @@ async def run_cycle():
     log_scrape(len(listings), new_c, deal_c, watch_c)
     logger.info(f"Done: {len(listings)} scraped, {new_c} new, {deal_c} deals, {watch_c} watches")
 
+    # Send new deal/watch notifications
     for deal in get_pending_notifications():
         ok = await send_deal_alert(deal) if deal["is_deal"] else await send_watch_alert(deal)
         if ok:
             mark_notified(deal["item_id"])
         await asyncio.sleep(0.5)
 
+    # Send price drop notifications
     for deal in get_price_dropped_deals():
         ok = await send_price_drop_alert(deal)
         if ok:
@@ -110,6 +121,19 @@ async def run_cycle():
 
     if _cycle % 100 == 0:
         cleanup_old_records()
+
+
+async def scrape_loop():
+    """Main scrape loop."""
+    while running:
+        try:
+            await run_cycle()
+        except Exception as e:
+            logger.error(f"Cycle error: {e}", exc_info=True)
+        for _ in range(SCRAPE_INTERVAL):
+            if not running:
+                break
+            await asyncio.sleep(1)
 
 
 async def main():
@@ -125,20 +149,15 @@ async def main():
     saved = load_settings()
     if saved:
         apply_settings(saved)
-        logger.info(f"Settings loaded — GPUs: {de.ALLOWED_GPUS}")
 
     await notify_startup()
     logger.info(f"Worker started — interval {SCRAPE_INTERVAL}s")
 
-    while running:
-        try:
-            await run_cycle()
-        except Exception as e:
-            logger.error(f"Cycle error: {e}", exc_info=True)
-        for _ in range(SCRAPE_INTERVAL):
-            if not running:
-                break
-            await asyncio.sleep(1)
+    # Run scrape loop and Telegram polling concurrently
+    await asyncio.gather(
+        scrape_loop(),
+        start_polling(),
+    )
 
 
 if __name__ == "__main__":
