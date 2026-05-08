@@ -160,6 +160,38 @@ def assess_liquidity(text: str) -> str:
     return "low"
 
 
+BUNDLE_KEYWORDS = [
+    "+ headset", "+ mouse", "+ muis", "+ bag", "+ tas", "+ keyboard",
+    "+ toetsenbord", "+ charger", "+ adapter", "+ dock", "+ sleeve",
+    "+ logitech", "+ razer", "+ steelseries", "+ hyperx", "+ corsair",
+    "met headset", "met muis", "met tas", "met toetsenbord",
+    "met logitech", "met razer", "met accessoires",
+    "incl headset", "incl muis", "incl tas", "incl accessoires",
+    "& headset", "& mouse", "& bag",
+    "inclusief muis", "inclusief tas", "inclusief headset",
+]
+
+# Regex patterns for bundles like "+ something" or "met iets"
+import re as _re
+_BUNDLE_PATTERNS = [
+    r'\+\s+\w+set',       # + headset, + dataset etc
+    r'\+\s+\w+muis',      # + muis
+    r'met\s+\w+set',    # met headset
+    r'incl\.?\s+\w+set',  # incl headset
+]
+
+
+def is_bundle(listing: dict) -> bool:
+    """Returns True if listing includes extra items that inflate price."""
+    text = ((listing.get("title","") or "") + " " + (listing.get("description","") or "")).lower()
+    if any(kw in text for kw in BUNDLE_KEYWORDS):
+        return True
+    for pat in _BUNDLE_PATTERNS:
+        if _re.search(pat, text):
+            return True
+    return False
+
+
 def assess_risk(listing: dict, discount_pct: float) -> str:
     score = 0
     if discount_pct > 45: score += 3
@@ -170,6 +202,8 @@ def assess_risk(listing: dict, discount_pct: float) -> str:
     si = listing.get("seller_items", 0)
     if si == 0: score += 2
     elif si < 3: score += 1
+    # Bundle penalty — price includes extra items
+    if is_bundle(listing): score += 3
     return "low" if score <= 1 else "medium" if score <= 3 else "high"
 
 
